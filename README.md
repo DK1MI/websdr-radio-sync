@@ -7,12 +7,15 @@ the other way: turn the VFO knob and the web SDR follows.
 It talks to the radio straight from the browser over **Web Serial**, with no helper app, drivers or
 rig-control software. Radios without a built-in driver work through **Hamlib** (about 300 models).
 
-- Works with **PA3FWM WebSDR**, **KiwiSDR**, **OpenWebRX** and **OpenWebRX+** pages, detected automatically
+- Works with **WebSDR**, **KiwiSDR**, **OpenWebRX** and **OpenWebRX+** pages, detected automatically
 - **Built-in drivers** for Kenwood, Elecraft, Yaesu and Icom, plus the many radios that use their protocols
 - **Any Hamlib radio** through `rigctld`, or share a `rigctld` that WSJT-X/fldigi already use
 - Syncs frequency and mode (LSB/USB/CW/AM/FM). The radio is never retuned while it's transmitting.
 - Gets CW right: the radio lands on the signal you hear, not the SDR's BFO frequency
 - Everything stays on your machine. The extension sends nothing anywhere except to your radio.
+
+![](screenshot.png)
+
 
 ---
 
@@ -32,7 +35,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 
 | Software | Example | Notes |
 |---|---|---|
-| [PA3FWM WebSDR](http://websdr.org/) | http://websdr.ewi.utwente.nl:8901/ | Switches bands automatically |
+| [WebSDR](http://websdr.org/) | http://websdr.ewi.utwente.nl:8901/ | Switches bands automatically |
 | [KiwiSDR](http://kiwisdr.com/) | any receiver on [rx.kiwisdr.com](http://rx.kiwisdr.com/) | 0–30 MHz. Keeps your waterfall zoom and honours a transverter frequency offset |
 | [OpenWebRX](https://www.openwebrx.de/) / [OpenWebRX+](https://fms.komkon.org/OWRX/) | any receiver on [receiverbook.de](https://www.receiverbook.de/) | Tunes within the band (profile) selected on the page. Pick another profile there to change bands |
 
