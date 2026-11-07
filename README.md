@@ -29,6 +29,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - [Troubleshooting](#troubleshooting)
 - [How it works](#how-it-works)
 - [Development](#development)
+- [Privacy](#privacy)
 - [License](#license)
 
 ## Supported web SDRs
@@ -234,6 +235,19 @@ which extension to allow.
 
 Pull requests are welcome, especially reports and fixes from owners of radios that haven't been
 tested on real hardware yet.
+
+## Privacy
+
+Web SDR → Radio Sync doesn't collect, send or share any data.
+
+- Settings (radio model, serial settings, sync options) are saved locally in your browser with
+  `chrome.storage.local` and never leave your computer.
+- The extension talks only to your own radio: over a serial port (Web Serial), or through the
+  Hamlib helper and `rigctld` on your computer or on a `rigctld` address you enter.
+- It makes no network requests, has no analytics or tracking, and loads no code from a server.
+- On web pages it only checks whether the page is a WebSDR, KiwiSDR or OpenWebRX receiver. On an SDR
+  page it reads and sets the tuned frequency and mode, and nothing else. On any other page it stops
+  after about a minute without doing anything.
 
 ## License
 
