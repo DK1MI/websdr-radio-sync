@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f2a24"/><stop offset="1" stop-color="#0f1612"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="url(#bg)" stroke="#2f4a3a" stroke-width="3"/>
+  <!-- signal: carrier peak on a noise floor -->
+  <path d="M16 62 L30 60 L38 63 L46 58 L52 61 L58 30 L64 14 L70 30 L76 61 L82 58 L90 63 L98 60 L112 62"
+        fill="none" stroke="#7dffb0" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- sync arrows -->
+  <g fill="none" stroke="#f0a32a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 84 H100 M88 74 L100 84"/>
+    <path d="M104 106 H28 M40 116 L28 106"/>
+  </g>
+</svg>

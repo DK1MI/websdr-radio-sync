@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Web SDR → Radio Sync",
+  "version": "2.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9SFqIGgf8pIu5a2haNe1CRc/r4v+GxoM/69mI16dTjfrtwmX7dRjgB5Gd8roVot+jcmi8CxcTE2ARytBgqGK363uUCX4/Kzv/42HfeUBsDOEzdg0nR1doajsKLIdXjQNAV2Q5Ui1Zx4L5fpXo+4a2kuxR5fH1nuvjkqu+JtHMOKDG7BAEXfdVRNMA3CTDJvPUaLF5KQ/pXFfuo+KPZTKaBMXW5HS2vMPCGlYfgIgpsguZO/XW6l7qSHc39JkNxYwbu9uBVmu1cfFtn6dREsmd7ujv1PpF1ouhY4WCitbjyVW7qsOkOJF9wQ5QOgfU7AVJJbh4K8gMvaoK+Ezd9qczQIDAQAB",
+  "description": "Keeps your transceiver tuned to the web SDR you are listening to (WebSDR, KiwiSDR, OpenWebRX/OpenWebRX+). Kenwood, Elecraft, Yaesu, Icom via Web Serial; any Hamlib radio via rigctld.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open WebSDR → radio sync panel",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/sdr-main.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
