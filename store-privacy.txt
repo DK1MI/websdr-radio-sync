@@ -1,0 +1,44 @@
+=== Single purpose description ===
+
+Keeps the user's amateur radio transceiver tuned to the same frequency and mode as the web SDR (WebSDR, KiwiSDR, OpenWebRX) they are listening to in the browser, and optionally tunes the web SDR when the radio's VFO knob is turned. The radio is controlled over a serial CAT connection using Web Serial, or through the user's own Hamlib installation. Optionally, the current frequency and mode are also reported to the user's own Cloudlog or Wavelog logbook so its QSO form is pre-filled.
+
+
+=== sidePanel ===
+
+The extension's whole user interface is a side panel: the radio selection, serial settings, connect button, sync options and the live SDR and radio frequencies. Clicking the toolbar icon opens this panel next to the web SDR page, so the user can see both while tuning. The panel also holds the serial connection to the radio, so it has to stay open beside the page rather than close like a popup.
+
+
+=== storage ===
+
+Saves the user's settings locally with chrome.storage.local so they don't have to set the radio up again each time: the selected radio model, serial settings (baud rate, stop bits, handshake, CI-V address), sync options, frequency offset, Hamlib settings, and the optional logbook settings (logbook URL, the user's logbook API key and a station ID). Nothing else is stored. Only the logbook API key and station ID leave the computer, and only to the logbook address the user entered.
+
+
+=== nativeMessaging ===
+
+Used only by the optional "Hamlib (rigctld)" mode, for radios that have no built-in driver. It connects to a small open-source helper program that the user installs themselves. The helper starts Hamlib's rigctld (or connects to one the user already runs) and relays frequency, mode and transmit status between the extension and the radio. Browsers don't let extensions start programs or open TCP connections, so this is the only way to reach Hamlib. If the user doesn't install the helper, native messaging is never used.
+
+
+=== Host permission (content scripts on http://*/* and https://*/*) ===
+
+Web SDR receivers are run by thousands of independent operators on their own servers, at arbitrary domains, IP addresses and ports (for example websdr.ewi.utwente.nl:8901 or a home KiwiSDR on a dynamic DNS name). No fixed list of sites could cover them, and new receivers appear all the time.
+
+On each page the content script checks for the JavaScript interface of WebSDR, KiwiSDR or OpenWebRX (functions such as nominalfreq() or ext_get_freq()). If none is found within about 60 seconds, it stops and does nothing further on that page. On a web SDR page it reads only the tuned frequency and mode, and sets them when the user's radio is retuned. It doesn't read or change page content, form data, cookies or anything else, and it sends nothing over the network.
+
+The optional host permissions (http://*/* and https://*/*, declared as optional_host_permissions) are never granted at install. They exist so the user can connect their own self-hosted Cloudlog or Wavelog logbook, which can live at any address. When the user clicks "Save & test" in the logbook settings, the extension requests access to that single site (for example https://log.example.com/*) and then sends frequency and mode to its radio API (POST /index.php/api/radio).
+
+
+=== Remote code ===
+
+No, I am not using remote code. All JavaScript is included in the extension package. Nothing is loaded from a server, and there is no eval() or similar.
+
+
+=== Data usage ===
+
+Collected data types: tick "Authentication information" (the user's own logbook API key, which is sent to the logbook the user configured). Leave everything else unticked. The frequency and mode of the user's radio aren't personal data in any of the listed categories.
+
+Certifications: tick all three.
+• I do not sell or transfer user data to third parties, outside of the approved use cases
+• I do not use or transfer user data for purposes that are unrelated to my item's single purpose
+• I do not use or transfer user data to determine creditworthiness or for lending purposes
+
+Privacy policy URL (if the form requires one): the Privacy section of the README on GitHub (https://github.com/<you>/<repo>#privacy).

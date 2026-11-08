@@ -109,6 +109,24 @@
     <p class="note">8N, no parity. Must match the radio's menu; applies on next connect. Use "RTS/DTR low" if the radio keys up when the port opens.</p>
   </details>
 
+  <details class="section" id="logbookCard">
+    <summary>Logbook: Cloudlog / Wavelog</summary>
+    <label class="check"><input type="checkbox" data-key="logbookOn"> Send frequency and mode to my logbook</label>
+    <div class="form">
+      <label for="logbookUrl">URL</label>
+      <input type="url" id="logbookUrl" data-key="logbookUrl" placeholder="https://log.example.com" spellcheck="false">
+      <label for="logbookKey">API key</label>
+      <input type="password" id="logbookKey" data-key="logbookKey" autocomplete="off" spellcheck="false">
+      <label for="logbookStation">Station ID</label>
+      <input type="text" id="logbookStation" data-key="logbookStation" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 1" class="short">
+    </div>
+    <div class="row">
+      <button id="logbookTestBtn">Save &amp; test</button>
+      <span class="status"><span class="dot" id="logbookDot"></span><span id="logbookStatus">Off</span></span>
+    </div>
+    <p class="note">Use an API key with read &amp; write access (account menu → API Keys in the logbook). The station ID is the number of your station location in the logbook (Station Setup). In the QSO window, pick the radio "Polling - WebSDR". The band is set by the logbook from the frequency.</p>
+  </details>
+
   <details class="section" open>
     <summary>Log</summary>
     <pre id="log"></pre>

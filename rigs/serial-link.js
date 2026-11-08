@@ -66,7 +66,7 @@ export class SerialLink {
       if (e.message === 'timeout') {
         const err = new Error(
           this.flowControl === 'hardware'
-            ? 'Serial write blocked: the radio is not asserting CTS. Check the cable, or try Flow control = None.'
+            ? 'Serial write blocked: the radio is not asserting CTS. Check the cable, or set Handshake to "none, RTS/DTR high".'
             : 'Serial write blocked.'
         );
         err.fatal = true;

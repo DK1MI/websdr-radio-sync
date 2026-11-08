@@ -1,0 +1,50 @@
+Listen on a web SDR and let your own transceiver follow. Click a signal on a WebSDR, KiwiSDR or OpenWebRX waterfall and your radio tunes to it. It also works the other way: turn the VFO knob and the web SDR follows.
+
+The extension talks to your radio directly from the browser over Web Serial. You don't need a helper app, drivers or rig-control software. Radios without a built-in driver work through Hamlib (about 300 models).
+
+FEATURES
+• Works with WebSDR, KiwiSDR, OpenWebRX and OpenWebRX+ pages, detected automatically
+• Built-in drivers for Kenwood, Elecraft, Yaesu and Icom, plus the many radios that use their protocols
+• Any Hamlib radio through rigctld, or share a rigctld that WSJT-X, fldigi or your logger already use
+• Syncs frequency and mode (LSB, USB, CW, AM, FM)
+• Never retunes the radio while it's transmitting
+• Gets CW right: the radio lands on the signal you hear, not the SDR's BFO frequency
+• Two-way sync, one-shot copy in either direction, and an offset to correct small differences between the radio and the SDR
+• Runs in Chrome's side panel or in its own window. With several SDR tabs open, it follows the tab you're looking at
+• Optional Cloudlog / Wavelog integration: your logbook's QSO form is pre-filled with frequency, band and mode
+
+SUPPORTED RADIOS (BUILT-IN)
+• Kenwood: TS-50, TS-140, TS-440, TS-450, TS-480, TS-570, TS-590S/SG, TS-680, TS-690, TS-711/811, TS-850, TS-870, TS-890, TS-950, TS-990, TS-2000
+• Elecraft: K2, K3/K3S, K4, KX2, KX3
+• Kenwood-compatible: FlexRadio (SmartSDR CAT), QRP Labs QDX/QMX/QCX, truSDX/uSDX, Lab599 TX-500, SDR software with TS-2000 emulation
+• Yaesu: FT-450/450D, FT-710, FT-891, FT-950, FT-991/991A, FT-2000, FTDX10, FTDX101D/MP, FTDX1200, FTDX3000, FTDX5000
+• Yaesu 5-byte CAT: FT-817/818, FT-857, FT-897, FT-847
+• Icom CI-V: IC-705, IC-706 series, IC-718, IC-735, IC-746/PRO, IC-756PROII/III, IC-910H, IC-7000, IC-7100, IC-7200, IC-7300, IC-7410, IC-7600, IC-7610, IC-7700, IC-7800, IC-7851, IC-9100, IC-9700, IC-R75, IC-R8600, and any other CI-V radio (set the address)
+• Xiegu: G90, X6100, X5105
+
+Everything else Hamlib supports (Ten-Tec, Alinco, AOR, older Yaesu such as the FT-1000MP, and many more) works through the Hamlib option.
+
+HOW TO USE
+1. Click the extension icon to open the sync panel.
+2. Choose your radio. Its usual serial settings are filled in. Check them against your radio's CAT menu.
+3. Click Connect and pick the serial port. Chrome can't show the port chooser inside the side panel, so a tab opens for it. Next time the panel reconnects automatically.
+4. Open a WebSDR, KiwiSDR or OpenWebRX page and tune. Your radio follows.
+
+REQUIREMENTS
+• Chrome, Edge, Brave or another Chromium browser, version 116 or later
+• A CAT connection to your radio: a USB cable for radios with a USB port, or a USB-serial adapter for RS-232 radios
+• Linux: your user must be in the "dialout" group (Debian, Ubuntu, Fedora) or "uucp" group (Arch and derivatives) to open serial ports
+• The Hamlib option needs Hamlib, Python 3 and a small helper program, set up once from the project's GitHub page. Browsers don't let extensions start programs themselves, so this can't be included in the extension. Linux and macOS only for now.
+
+CLOUDLOG / WAVELOG
+Enter your logbook's address, an API key and your station ID in the panel. The extension then reports the current frequency and mode through the logbook's radio API, like a CAT tool would. It uses the radio's frequency when a radio is connected, otherwise the SDR's, which is handy for SWL logging.
+
+PRIVACY AND PERMISSIONS
+No tracking or analytics, and the developer receives no data. The extension talks to your radio and, only if you set it up, to the Cloudlog or Wavelog address you entered, sending just your API key, frequency, mode and station ID.
+• Access to all websites: web SDRs run on thousands of independently hosted receivers at arbitrary addresses, so the extension checks each page for a WebSDR, KiwiSDR or OpenWebRX receiver. On every other page it does nothing.
+• Side panel: shows the sync controls next to the SDR page.
+• Storage: remembers your radio, serial and logbook settings.
+• Native messaging: used only by the optional Hamlib helper.
+• Optional access to your logbook's site: requested only when you set up the logbook, for that one address.
+
+Free and open source (MIT license). Bug reports and feedback from owners of radios that haven't been tested on real hardware yet are very welcome.

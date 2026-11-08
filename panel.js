@@ -4,6 +4,7 @@
 // and the radio.
 import { MODELS, findModel, createDriver, shortName } from './rigs/models.js';
 import { HostSession } from './rigs/hamlib.js';
+import { Logbook } from './logbook.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,6 +29,10 @@ const DEFAULTS = {
   hamlibDevice: '',
   hamlibExtra: '',
   hamlibHost: '127.0.0.1:4532',
+  logbookOn: false,
+  logbookUrl: '',
+  logbookKey: '',
+  logbookStation: '',
 };
 let cfg = { ...DEFAULTS };
 
@@ -69,7 +74,9 @@ function bindSettings() {
       if (el.dataset.type === 'number') v = Number(v) || 0;
       if (key === 'pollMs') v = Math.min(5000, Math.max(150, v));
       if (key === 'civAddr') v = String(v).trim().replace(/^0x/i, '').replace(/h$/i, '').toUpperCase();
+      if (key.startsWith('logbook') && typeof v === 'string') v = v.trim();
       save(key, v);
+      if (key.startsWith('logbook')) logbook.configure(cfg);
       if (key === 'rigModel') {
         const m = findModel(v);
         applyModelDefaults(m);
@@ -144,6 +151,7 @@ const RADIO_MODE_TO_SDR = { LSB: 'LSB', USB: 'USB', CW: 'CW', 'CW-R': 'CW', FM: 
 
 let driver = null;
 let serialPort = null;    // the Web Serial port (built-in drivers only)
+let serialFlow = 'none';  // handshake the port was opened with
 let connected = false;
 
 const radio = { hz: null, mode: null, vfo: null, tx: false, responsive: false, idText: '' };
@@ -195,7 +203,47 @@ function render() {
   $('rigModel').disabled = connected;
   $('pushBtn').disabled = !connected || sdr.hz == null;
   $('pullBtn').disabled = !connected || radio.hz == null || sdr.tabId == null;
+
+  logbook.update(logbookState());
 }
+
+/* ---------------------------------------------------------------- logbook (Cloudlog / Wavelog) */
+
+const logbook = new Logbook({
+  log,
+  onStatus(level, text) {
+    $('logbookDot').className = 'dot' + (level ? ' ' + level : '');
+    $('logbookStatus').textContent = text;
+  },
+});
+
+// The radio's frequency when it is connected and answering, otherwise the SDR's
+// (useful for SWL logging without a radio).
+function logbookState() {
+  if (connected && radio.responsive && radio.hz != null) return { hz: radio.hz, mode: radio.mode };
+  if (sdr.tabId != null && sdr.hz != null) return { hz: sdr.hz, mode: sdr.mode };
+  return null;
+}
+
+$('logbookTestBtn').addEventListener('click', async () => {
+  // Pick up fields that were typed into but not yet committed with Enter/Tab.
+  for (const id of ['logbookUrl', 'logbookKey', 'logbookStation']) save(id, $(id).value.trim());
+  logbook.configure(cfg);
+  try {
+    const { sent, station } = await logbook.test();
+    if (station) log(`Logbook station ${logbook.stationId}: ${station}.`);
+    if (!sent) {
+      logbook.onStatus('ok', 'Access allowed. Waiting for a frequency');
+      log('Logbook access allowed. Frequency and mode are sent once the radio or an SDR tab reports one.');
+    } else {
+      logbook.onStatus('ok', station ? `Test OK · station ${logbook.stationId}` : 'Test OK');
+      log(`Logbook accepted the update for radio "${logbook.radioName}".${cfg.logbookOn ? '' : ' Tick "Send frequency and mode" to keep it updated.'}`);
+    }
+  } catch (e) {
+    logbook.onStatus('bad', e.message);
+    log(`Logbook test failed: ${e.message}`, 'warn');
+  }
+});
 
 /* ---------------------------------------------------------------- radio state */
 
@@ -234,7 +282,7 @@ async function pollRadio() {
     if (++missedPolls === 3) {
       radio.responsive = false;
       render();
-      log(`Radio stopped answering (${e.message}). Check power, cable, baud rate, flow control.`, 'warn');
+      if (!(await warnIfNoCts())) log(`Radio stopped answering (${e.message}). Check power, cable, baud rate, flow control.`, 'warn');
     }
   }
 }
@@ -363,6 +411,19 @@ async function pickSerialPort(prompt) {
   return p;
 }
 
+// With RTS/CTS handshake the adapter only sends while the radio asserts CTS. If CTS is off,
+// the bytes sit in the adapter's buffer and the radio simply never answers, so say why.
+async function warnIfNoCts() {
+  if (!serialPort || serialFlow !== 'hardware') return false;
+  try {
+    if ((await serialPort.getSignals()).clearToSend) return false;
+  } catch (_) {
+    return false;
+  }
+  log('The radio is not asserting CTS, so with RTS/CTS handshake nothing reaches it. Check the cable, or set Handshake to "none, RTS/DTR high" under Serial / CAT and reconnect.', 'warn');
+  return true;
+}
+
 async function connect({ prompt }) {
   if (connected) return;
   if (connecting) {
@@ -401,6 +462,7 @@ async function connectInner(prompt) {
 
   driver = d;
   serialPort = port;
+  serialFlow = cfg.flowControl;
   connected = true;
   radio.hz = radio.mode = radio.vfo = null;
   radio.tx = false;
@@ -415,6 +477,7 @@ async function connectInner(prompt) {
     log(`${model.name}: port open (${cfg.baudRate} 8N${cfg.stopBits}, flow: ${cfg.flowControl}).`);
   }
   render();
+  const noCts = await warnIfNoCts();
 
   try {
     radio.idText = await d.identify();
@@ -422,7 +485,8 @@ async function connectInner(prompt) {
     log(`Radio answered${radio.idText ? ': ' + radio.idText : ''}.`);
   } catch (e) {
     if (e.fatal) { log(e.message, 'err'); await disconnect(); return; }
-    log(`No answer from the radio (${e.message}). Check baud rate, stop bits, cable${model.family === 'icom' ? ', CI-V address' : ''}. Will keep trying.`, 'warn');
+    if (noCts) log('No answer from the radio. Will keep trying.', 'warn');
+    else log(`No answer from the radio (${e.message}). Check baud rate, stop bits, cable${model.family === 'icom' ? ', CI-V address' : ''}. Will keep trying.`, 'warn');
   }
   render();
 
@@ -590,6 +654,7 @@ window.addEventListener('pagehide', () => { if (driver) disconnect(); });
   populateModelSelect();
   await loadSettings();
   bindSettings();
+  logbook.configure(cfg);
   updateSections();
   if (currentModel().family === 'hamlib') checkHamlibHelper();
   const tabs = await chrome.tabs.query({ active: true });

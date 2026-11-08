@@ -12,7 +12,8 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - **Any Hamlib radio** through `rigctld`, or share a `rigctld` that WSJT-X/fldigi already use
 - Syncs frequency and mode (LSB/USB/CW/AM/FM). The radio is never retuned while it's transmitting.
 - Gets CW right: the radio lands on the signal you hear, not the SDR's BFO frequency
-- Everything stays on your machine. The extension sends nothing anywhere except to your radio.
+- Optionally keeps your **Cloudlog** or **Wavelog** logbook up to date, so the QSO form is pre-filled
+- No tracking or analytics. Data goes only to your radio and, if you set it up, your own logbook.
 
 ![](screenshot.png)
 
@@ -25,6 +26,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - [Installation](#installation)
 - [Usage](#usage)
 - [Hamlib (any other radio)](#hamlib-any-other-radio)
+- [Logbook: Cloudlog / Wavelog](#logbook-cloudlog--wavelog)
 - [Cables and serial settings](#cables-and-serial-settings)
 - [Troubleshooting](#troubleshooting)
 - [How it works](#how-it-works)
@@ -139,6 +141,35 @@ its error message.
 > **Windows:** the built-in drivers should work (Web Serial is cross-platform), but this hasn't
 > been tested yet. The Hamlib helper's installer is for Linux and macOS only so far.
 
+## Logbook: Cloudlog / Wavelog
+
+The extension can report the current frequency and mode to your [Cloudlog](https://www.magicbug.co.uk/cloudlog/)
+or [Wavelog](https://www.wavelog.org/) logbook, the same way CAT tools such as CloudlogCAT or
+WaveLogGate do. The logbook's QSO window then fills in frequency, band and mode by itself.
+
+1. In your logbook, create an API key with **read & write** access (Account menu → API Keys).
+2. In the panel, open **Logbook: Cloudlog / Wavelog** and enter:
+   - **URL**: the address of your logbook, e.g. `https://log.example.com` or
+     `https://example.com/wavelog`. The full API endpoint (`…/index.php/api/radio`) works too.
+   - **API key**: the key from step 1.
+   - **Station ID** (optional): the number of your station location in the logbook (Station
+     Setup, the ID column). **Save & test** checks that it exists and shows its name.
+3. Click **Save & test**. Chrome asks once for permission to access your logbook's site.
+4. Tick **Send frequency and mode to my logbook**.
+5. In the logbook's QSO window, choose **Polling - WebSDR** in the **Radio** list.
+
+What is sent: the radio's frequency and mode while a radio is connected and answering, otherwise
+the frequency and mode of the SDR you're listening to (handy for SWL logging without a radio).
+Updates go out a second after you stop tuning, and every two minutes while nothing changes, so
+the logbook doesn't mark the radio as stale. The band is worked out by the logbook from the frequency.
+
+Each update is a `POST` to the radio API with your API key, the radio name `WebSDR`, the frequency in
+Hz, the mode and, if set, the station ID (`station_profile_id`). Your logbook isn't sent anything else. The API key is stored in the browser's extension
+storage on your computer, like the other settings.
+
+> Current Cloudlog and Wavelog versions don't use a station ID in the radio API, so the station
+> location for a QSO is still the one selected in the logbook's QSO window.
+
 ## Cables and serial settings
 
 - RS-232 radios (e.g. TS-570, FT-817, older Icoms with a CT-17) need a USB-serial adapter: FTDI,
@@ -170,6 +201,9 @@ its error message.
 | The radio keys up on connect | Set Handshake = none, RTS/DTR low |
 | "… does not cover …" | The SDR can't tune there. On OpenWebRX, pick the right band profile on the page |
 | "Hamlib helper not installed" | Run `./native/install.sh` (see [Hamlib](#hamlib-any-other-radio)) |
+| Logbook: "missing api key" (HTTP 401) | The key is wrong, or it's read-only. Create one with read & write access |
+| Logbook: "API not found at this URL" | Enter the address you open the logbook at, e.g. `https://example.com/wavelog` |
+| Logbook: "cannot reach …" | Check the URL and that the logbook is online. Self-signed HTTPS certificates must be accepted in Chrome first by opening the logbook once |
 | The radio is in memory mode | Switch to VFO A or B. Remote tuning only works in VFO mode |
 
 The **Log** at the bottom of the panel shows what's happening.
@@ -209,6 +243,7 @@ The **Log** at the bottom of the panel shows what's happening.
     broadcasts.
   - `hamlib.js`: native messaging to `native/websdr_radio_sync_host.py`, which drives `rigctld`.
   - `models.js`: the radio list and each model's defaults.
+- **`logbook.js`** sends frequency and mode to Cloudlog/Wavelog (`POST …/index.php/api/radio`).
 
 ## Development
 
@@ -238,13 +273,16 @@ tested on real hardware yet.
 
 ## Privacy
 
-Web SDR → Radio Sync doesn't collect, send or share any data.
+Web SDR → Radio Sync has no tracking or analytics, and the developer receives no data at all.
 
-- Settings (radio model, serial settings, sync options) are saved locally in your browser with
-  `chrome.storage.local` and never leave your computer.
-- The extension talks only to your own radio: over a serial port (Web Serial), or through the
-  Hamlib helper and `rigctld` on your computer or on a `rigctld` address you enter.
-- It makes no network requests, has no analytics or tracking, and loads no code from a server.
+- Settings (radio model, serial settings, sync options, logbook URL and API key) are saved locally
+  in your browser with `chrome.storage.local`.
+- The extension talks to your own radio: over a serial port (Web Serial), or through the Hamlib
+  helper and `rigctld` on your computer or on a `rigctld` address you enter.
+- Only if you set up the [logbook integration](#logbook-cloudlog--wavelog), it sends your API key,
+  the radio name, frequency, mode and station ID to the Cloudlog or Wavelog address you entered, and nowhere
+  else. Nothing is sent until you set it up and switch it on.
+- It loads no code from a server.
 - On web pages it only checks whether the page is a WebSDR, KiwiSDR or OpenWebRX receiver. On an SDR
   page it reads and sets the tuned frequency and mode, and nothing else. On any other page it stops
   after about a minute without doing anything.
