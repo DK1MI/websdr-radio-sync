@@ -11,7 +11,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - **Built-in drivers** for Kenwood, Elecraft, Yaesu and Icom, plus the many radios that use their protocols
 - **Any Hamlib radio** through `rigctld`, or share a `rigctld` that WSJT-X/fldigi already use
 - Syncs frequency and mode (LSB/USB/CW/AM/FM). The radio is never retuned while it's transmitting.
-- Gets CW right: the radio lands on the signal you hear, not the SDR's BFO frequency
+- For CW: the radio lands on the signal you hear, not the SDR's BFO frequency
 - Optionally keeps your **Cloudlog** or **Wavelog** logbook up to date, so the QSO form is pre-filled
 - No tracking or analytics. Data goes only to your radio and, if you set it up, your own logbook.
 
