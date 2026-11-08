@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web SDR → Radio Sync",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9SFqIGgf8pIu5a2haNe1CRc/r4v+GxoM/69mI16dTjfrtwmX7dRjgB5Gd8roVot+jcmi8CxcTE2ARytBgqGK363uUCX4/Kzv/42HfeUBsDOEzdg0nR1doajsKLIdXjQNAV2Q5Ui1Zx4L5fpXo+4a2kuxR5fH1nuvjkqu+JtHMOKDG7BAEXfdVRNMA3CTDJvPUaLF5KQ/pXFfuo+KPZTKaBMXW5HS2vMPCGlYfgIgpsguZO/XW6l7qSHc39JkNxYwbu9uBVmu1cfFtn6dREsmd7ujv1PpF1ouhY4WCitbjyVW7qsOkOJF9wQ5QOgfU7AVJJbh4K8gMvaoK+Ezd9qczQIDAQAB",
   "description": "Keeps your radio tuned to the web SDR you're listening to (WebSDR, KiwiSDR, OpenWebRX). Kenwood, Elecraft, Yaesu, Icom, Hamlib rigs.",
   "icons": {
@@ -15,6 +15,10 @@
     "sidePanel",
     "storage",
     "nativeMessaging"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"
