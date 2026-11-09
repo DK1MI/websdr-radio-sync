@@ -81,6 +81,18 @@
     </div>
   </div>
 
+  <details class="section" id="spotsCard">
+    <summary>Spots: POTA, SOTA, WWFF …</summary>
+    <div class="row">
+      <select id="spotBand" data-key="spotBand" aria-label="Band"><option value="">All bands</option></select>
+      <select id="spotMode" data-key="spotMode" aria-label="Mode"><option value="">All modes</option></select>
+      <select id="spotActivity" data-key="spotActivity" aria-label="Programme"><option value="">All programmes</option></select>
+      <button id="spotsRefreshBtn" title="Fetch the spots now">Refresh</button>
+    </div>
+    <p class="note" id="spotsStatus">Spots load while this section is open.</p>
+    <div class="spots" id="spotsList"></div>
+  </details>
+
   <details class="section">
     <summary>Serial / CAT</summary>
     <div class="form">

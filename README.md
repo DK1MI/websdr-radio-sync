@@ -13,6 +13,9 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - Syncs frequency and mode (LSB/USB/CW/AM/FM). The radio is never retuned while it's transmitting.
 - For CW: the radio lands on the signal you hear, not the SDR's BFO frequency
 - Optionally keeps your **Cloudlog** or **Wavelog** logbook up to date, so the QSO form is pre-filled
+- Lists current **POTA, SOTA, WWFF … spots** with band, mode and programme filters. Click one and the SDR
+  and radio jump to it,
+  and log the contact in Cloudlog/Wavelog with one more click
 - No tracking or analytics. Data goes only to your radio and, if you set it up, your own logbook.
 
 ![](screenshot.png)
@@ -26,6 +29,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - [Installation](#installation)
 - [Usage](#usage)
 - [Hamlib (any other radio)](#hamlib-any-other-radio)
+- [Spots: POTA, SOTA, WWFF …](#spots-pota-sota-wwff-)
 - [Logbook: Cloudlog / Wavelog](#logbook-cloudlog--wavelog)
 - [Cables and serial settings](#cables-and-serial-settings)
 - [Troubleshooting](#troubleshooting)
@@ -141,6 +145,46 @@ its error message.
 > **Windows:** the built-in drivers should work (Web Serial is cross-platform), but this hasn't
 > been tested yet. The Hamlib helper's installer is for Linux and macOS only so far.
 
+## Spots: POTA, SOTA, WWFF …
+
+Open **Spots** in the panel to see who is on the air from a park, summit, bunker, island and so
+on, newest first: frequency (kHz), mode, callsign, references and how long ago the spot was
+posted. Hover over a spot for the reference names, location, comments and spotter.
+
+The spots come from [Spothole](https://spothole.app/) by M0TRT, which collects spots from POTA,
+SOTA, WWFF, WWBOTA, GMA, IOTA and many other programmes in one place. Only spots that belong to a
+programme are shown (no plain DX cluster spots), one per callsign (the latest), and not once the
+activator is known to be QRT.
+
+- Filter by **band** (160 m to 70 cm), **mode** (CW, SSB, Data such as FT8 or RTTY, FM, AM) and
+  **programme**. The programme list shows the programmes that currently have spots, with their
+  number. The filters are remembered.
+- **Click a spot** (or select it with Tab and press Enter) to tune. The SDR tab jumps to the spot,
+  and so does the radio if it's connected. Without an SDR tab, only the radio is tuned.
+- The mode is set along with the frequency: CW, FM or AM as spotted, SSB as LSB below 10 MHz
+  (USB on 60 m and above 10 MHz), and data modes as USB.
+- The spot you're tuned to is highlighted.
+- If the SDR doesn't cover the spot's frequency, the log says so and the SDR stays where it was.
+
+**Logging a QSO:** once the [logbook](#logbook-cloudlog--wavelog) is set up with a URL, API key and
+station ID, each spot has a **Log** button. Click it, then click **Confirm** within four seconds.
+The QSO goes straight into your logbook for that station:
+
+- Callsign, date and time (UTC, the moment you confirm), frequency, band and mode
+- Report 59 sent and received, or 599 in CW
+- The references: the first one as `SIG` / `SIG_INFO` (e.g. `SOTA` / `HB/GR-372`), and POTA, SOTA,
+  WWFF and IOTA references also in their own fields (`POTA_REF`, with all parks of a two-fer,
+  `SOTA_REF`, `WWFF_REF`, `IOTA`)
+- The frequency is the radio's if it's within 3 kHz of the spot (you may have fine-tuned), otherwise
+  the spot's
+
+Logged spots show **Logged ✓** for the rest of the session. To change anything, such as the report,
+edit the QSO in the logbook.
+
+Spots are fetched from `spothole.app` only while the section is open, every two minutes (Spothole
+itself checks POTA every two minutes), and not while the panel is hidden. **Refresh** fetches them
+right away.
+
 ## Logbook: Cloudlog / Wavelog
 
 The extension can report the current frequency and mode to your [Cloudlog](https://www.magicbug.co.uk/cloudlog/)
@@ -167,8 +211,9 @@ Each update is a `POST` to the radio API with your API key, the radio name `WebS
 Hz, the mode and, if set, the station ID (`station_profile_id`). Your logbook isn't sent anything else. The API key is stored in the browser's extension
 storage on your computer, like the other settings.
 
-> Current Cloudlog and Wavelog versions don't use a station ID in the radio API, so the station
-> location for a QSO is still the one selected in the logbook's QSO window.
+> The station ID decides which station location QSOs logged from [spots](#spots-pota-sota-wwff-) go to.
+> The radio API (frequency and mode) doesn't use it: in the logbook's own QSO window, the station is
+> the one selected there.
 
 ## Cables and serial settings
 
@@ -244,6 +289,8 @@ The **Log** at the bottom of the panel shows what's happening.
   - `hamlib.js`: native messaging to `native/websdr_radio_sync_host.py`, which drives `rigctld`.
   - `models.js`: the radio list and each model's defaults.
 - **`logbook.js`** sends frequency and mode to Cloudlog/Wavelog (`POST …/index.php/api/radio`).
+- **`spots.js`** fetches spots from Spothole (`spothole.app/api/v3/spots`) and sorts them into bands,
+  mode groups and programmes.
 
 ## Development
 
@@ -280,8 +327,10 @@ Web SDR → Radio Sync has no tracking or analytics, and the developer receives 
 - The extension talks to your own radio: over a serial port (Web Serial), or through the Hamlib
   helper and `rigctld` on your computer or on a `rigctld` address you enter.
 - Only if you set up the [logbook integration](#logbook-cloudlog--wavelog), it sends your API key,
-  the radio name, frequency, mode and station ID to the Cloudlog or Wavelog address you entered, and nowhere
+  the radio name, frequency, mode and station ID, and the QSOs you log from spots, to the Cloudlog or Wavelog address you entered, and nowhere
   else. Nothing is sent until you set it up and switch it on.
+- While the **Spots** section is open, it downloads the public spot list from `spothole.app`.
+  That request carries no settings or personal data.
 - It loads no code from a server.
 - On web pages it only checks whether the page is a WebSDR, KiwiSDR or OpenWebRX receiver. On an SDR
   page it reads and sets the tuned frequency and mode, and nothing else. On any other page it stops

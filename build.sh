@@ -8,7 +8,7 @@ exec python3 -I - <<'PY'
 import json, os, zipfile
 
 EXT = ["manifest.json", "background.js", "panel.html", "panel.css", "panel.js",
-       "pick-port.html", "pick-port.js", "logbook.js", "content", "rigs", "icons"]
+       "pick-port.html", "pick-port.js", "logbook.js", "spots.js", "content", "rigs", "icons"]
 EXTRA = ["native", "README.md", "LICENSE"]
 
 manifest = json.load(open("manifest.json"))

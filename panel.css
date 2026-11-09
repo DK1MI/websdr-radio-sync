@@ -112,3 +112,15 @@ pre.cmd {
 .foot { margin: 8px 0 4px; font-size: 12px; }
 
 [hidden] { display: none !important; }
+
+/* POTA spots */
+.spots { max-height: 45vh; overflow-y: auto; margin-top: 5px; }
+.spots table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.spots td { padding: 2px 4px; border-top: 1px solid var(--line); white-space: nowrap; }
+.spots td.park { white-space: normal; overflow-wrap: anywhere; color: var(--dim); }
+.spots tr { cursor: pointer; }
+.spots tr:hover, .spots tr:focus-visible { background: color-mix(in srgb, CanvasText 8%, Canvas); outline: none; }
+.spots tr.tuned { background: color-mix(in srgb, var(--ok) 18%, Canvas); }
+.spots .freq { font-weight: 600; }
+.spots button.logqso { padding: 0 6px; font-size: 11px; }
+.spots button.logqso[data-state="confirm"] { color: var(--bad); border-color: var(--bad); }

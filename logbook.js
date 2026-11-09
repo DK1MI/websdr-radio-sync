@@ -2,6 +2,8 @@
 // (POST /index.php/api/radio), so the QSO entry form is pre-filled. The logbook derives the band
 // from the frequency itself.
 
+import { bandOf } from './spots.js';
+
 const DEBOUNCE_MS = 1000;   // tuning across the band sends one update, not dozens
 const REFRESH_MS = 120000;  // re-send an unchanged state so the logbook doesn't mark the radio stale
 const TIMEOUT_MS = 8000;
@@ -35,6 +37,56 @@ const MODE_MAP = {
   'DATA-U': 'PKTUSB', PKT: 'PKTUSB', 'DATA-L': 'PKTLSB', 'DATA-FM': 'PKTFM',
 };
 const logMode = (m) => (m ? MODE_MAP[m] || m : null);
+
+/* ---------------------------------------------------------------- ADIF for QSO logging */
+
+// Spot modes that ADIF files under a parent mode.
+const ADIF_SUBMODES = {
+  FT4: 'MFSK', JS8: 'MFSK', Q65: 'MFSK', FST4: 'MFSK',
+  PSK31: 'PSK', PSK63: 'PSK', PSK125: 'PSK', BPSK31: 'PSK',
+  USB: 'SSB', LSB: 'SSB',
+};
+
+export function adifMode(mode, hz) {
+  const m = String(mode || '').toUpperCase().trim();
+  if (m === 'SSB' || m === 'PHONE') return ['SSB', hz < 10e6 && bandOf(hz) !== '60m' ? 'LSB' : 'USB'];
+  if (ADIF_SUBMODES[m]) return [ADIF_SUBMODES[m], m];
+  return [m || 'SSB', null];
+}
+
+const field = (name, value) => {
+  const v = String(value);
+  return `<${name}:${new TextEncoder().encode(v).length}>${v}`;
+};
+
+// ADIF fields of their own for some programmes (ADIF 3.1.4). POTA_REF takes a comma-separated
+// list (two-fers); the others take one reference.
+const REF_FIELDS = { POTA: ['POTA_REF', true], SOTA: ['SOTA_REF', false], WWFF: ['WWFF_REF', false], IOTA: ['IOTA', false] };
+
+// One ADIF record for a QSO with a spotted activator. refs: [{ activity, id }].
+// The report is 599 in CW, 59 otherwise. The first reference also goes into SIG / SIG_INFO.
+export function spotQsoAdif({ call, hz, mode, refs = [] }, when = new Date()) {
+  const [m, sub] = adifMode(mode, hz);
+  const rst = m === 'CW' ? '599' : '59';
+  const iso = when.toISOString();
+  const parts = [
+    field('CALL', call.toUpperCase()),
+    field('QSO_DATE', iso.slice(0, 10).replace(/-/g, '')),
+    field('TIME_ON', iso.slice(11, 19).replace(/:/g, '')),
+    field('FREQ', (hz / 1e6).toFixed(6)),
+    field('MODE', m),
+  ];
+  if (sub) parts.push(field('SUBMODE', sub));
+  const band = bandOf(hz);
+  if (band !== 'other') parts.push(field('BAND', band));
+  parts.push(field('RST_SENT', rst), field('RST_RCVD', rst));
+  if (refs.length) parts.push(field('SIG', refs[0].activity), field('SIG_INFO', refs[0].id));
+  for (const [activity, [name, many]] of Object.entries(REF_FIELDS)) {
+    const ids = refs.filter((r) => r.activity === activity).map((r) => r.id);
+    if (ids.length) parts.push(field(name, many ? ids.join(',') : ids[0]));
+  }
+  return parts.join(' ') + ' <EOR>';
+}
 
 export class Logbook {
   constructor({ log, onStatus }) {
@@ -154,6 +206,47 @@ export class Logbook {
       if (r.status === 404 && !reason) throw new Error('API not found at this URL. Check the address');
       throw new Error(reason ? `${reason} (HTTP ${r.status})` : `HTTP ${r.status}`);
     }
+  }
+
+  // QSO logging needs a URL, an API key and a station ID.
+  get canLogQso() {
+    const s = this.settings;
+    return !!(s.logbookKey && endpointFor(s.logbookUrl) && this.stationId);
+  }
+
+  // Logs one QSO through the logbook's QSO API (POST …/api/qso) into the configured station.
+  async logQso(qso) {
+    if (!this.canLogQso) throw new Error('set the logbook URL, API key and station ID first');
+    const url = endpointFor(this.settings.logbookUrl).replace(/\/api\/radio$/, '/api/qso');
+    if (!(await chrome.permissions.contains({ origins: [originPattern(url)] }))) {
+      throw new Error(`no access to ${new URL(url).hostname} yet. Click "Save & test" in the logbook settings`);
+    }
+    const body = {
+      key: String(this.settings.logbookKey).trim(),
+      station_profile_id: String(this.stationId),
+      type: 'adif',
+      string: spotQsoAdif(qso),
+    };
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        credentials: 'omit',
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (e) {
+      throw new Error(e.name === 'TimeoutError' ? 'no answer from the logbook' : `cannot reach ${new URL(url).host}`);
+    }
+    let j = null;
+    try { j = await r.json(); } catch (_) {}
+    if (!r.ok || !j || j.status !== 'created') {
+      const msg = j?.reason || (Array.isArray(j?.messages) ? j.messages.filter(Boolean).join(' ') : '');
+      throw new Error(msg ? `${msg} (HTTP ${r.status})` : `the logbook did not accept the QSO (HTTP ${r.status})`);
+    }
+    if (j.adif_count === 0) throw new Error('the logbook imported no QSO');
+    return body.string;
   }
 
   // Looks the station ID up in the logbook (GET …/api/station_info/{key}) and returns its

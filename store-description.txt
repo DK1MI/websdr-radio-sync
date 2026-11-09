@@ -12,6 +12,7 @@ FEATURES
 • Two-way sync, one-shot copy in either direction, and an offset to correct small differences between the radio and the SDR
 • Runs in Chrome's side panel or in its own window. With several SDR tabs open, it follows the tab you're looking at
 • Optional Cloudlog / Wavelog integration: your logbook's QSO form is pre-filled with frequency, band and mode
+• POTA, SOTA, WWFF and other activation spots (via Spothole) with band, mode and programme filters: click a spot and the SDR and your radio jump to it, then log the contact in Cloudlog / Wavelog with one more click
 
 SUPPORTED RADIOS
 The built-in drivers cover most current and many older Kenwood, Elecraft, Yaesu, Icom and Xiegu transceivers, for example the Kenwood TS-590, the Icom IC-7300 and the Yaesu FT-991A. Radios that use the same protocols work too, such as FlexRadio and QRP Labs rigs, and so does the FT-817 family with its older Yaesu protocol. Pick your radio from the list in the panel. The full list of models is at https://github.com/DK1MI/websdr-radio-sync#supported-radios
@@ -34,7 +35,7 @@ CLOUDLOG / WAVELOG
 Enter your logbook's address, an API key and your station ID in the panel. The extension then reports the current frequency and mode through the logbook's radio API, like a CAT tool would. It uses the radio's frequency when a radio is connected, otherwise the SDR's, which is handy for SWL logging.
 
 PRIVACY AND PERMISSIONS
-No tracking or analytics, and the developer receives no data. The extension talks to your radio and, only if you set it up, to the Cloudlog or Wavelog address you entered, sending just your API key, frequency, mode and station ID.
+No tracking or analytics, and the developer receives no data. The extension talks to your radio and, only if you set it up, to the Cloudlog or Wavelog address you entered, sending just your API key, frequency, mode, station ID and the QSOs you choose to log. While the spots list is open, it downloads the public spot list from spothole.app, without sending any of your data.
 • Access to all websites: web SDRs run on thousands of independently hosted receivers at arbitrary addresses, so the extension checks each page for a WebSDR, KiwiSDR or OpenWebRX receiver. On every other page it does nothing.
 • Side panel: shows the sync controls next to the SDR page.
 • Storage: remembers your radio, serial and logbook settings.
