@@ -153,11 +153,13 @@ posted. Hover over a spot for the reference names, location, comments and spotte
 
 The spots come from [Spothole](https://spothole.app/) by M0TRT, which collects spots from POTA,
 SOTA, WWFF, WWBOTA, GMA, IOTA and many other programmes in one place. Only spots that belong to a
-programme are shown (no plain DX cluster spots), one per callsign (the latest), and not once the
-activator is known to be QRT.
+programme are shown (no plain DX cluster spots), one row per callsign with the latest frequency.
+If an activator is in several programmes at once, for example a POTA park inside a WWFF area, the
+row shows all their references, however they were spotted. Activators whose latest spot says QRT
+are left out.
 
-- Filter by **band** (160 m to 70 cm), **mode** (CW, SSB, Data such as FT8 or RTTY, FM, AM) and
-  **programme**. The programme list shows the programmes that currently have spots, with their
+- Filter by **band** (160 m to 70 cm), **mode** (CW, SSB, Data such as FT8 or RTTY, FM, AM),
+  **programme** and the activator's **continent**. The programme list shows the programmes that currently have spots, with their
   number. The filters are remembered.
 - **Click a spot** (or select it with Tab and press Enter) to tune. The SDR tab jumps to the spot,
   and so does the radio if it's connected. Without an SDR tab, only the radio is tuned.

@@ -12,7 +12,7 @@ FEATURES
 • Two-way sync, one-shot copy in either direction, and an offset to correct small differences between the radio and the SDR
 • Runs in Chrome's side panel or in its own window. With several SDR tabs open, it follows the tab you're looking at
 • Optional Cloudlog / Wavelog integration: your logbook's QSO form is pre-filled with frequency, band and mode
-• POTA, SOTA, WWFF and other activation spots (via Spothole) with band, mode and programme filters: click a spot and the SDR and your radio jump to it, then log the contact in Cloudlog / Wavelog with one more click
+• POTA, SOTA, WWFF and other activation spots (via Spothole) with band, mode, programme and continent filters: click a spot and the SDR and your radio jump to it, then log the contact in Cloudlog / Wavelog with one more click
 
 SUPPORTED RADIOS
 The built-in drivers cover most current and many older Kenwood, Elecraft, Yaesu, Icom and Xiegu transceivers, for example the Kenwood TS-590, the Icom IC-7300 and the Yaesu FT-991A. Radios that use the same protocols work too, such as FlexRadio and QRP Labs rigs, and so does the FT-817 family with its older Yaesu protocol. Pick your radio from the list in the panel. The full list of models is at https://github.com/DK1MI/websdr-radio-sync#supported-radios
