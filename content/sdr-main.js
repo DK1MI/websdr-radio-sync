@@ -1,5 +1,5 @@
 // Runs in the page's own JS world so it can use the web SDR's JavaScript.
-// Supports PA3FWM WebSDR, KiwiSDR, and OpenWebRX / OpenWebRX+.
+// Supports PA3FWM WebSDR (desktop and mobile page), KiwiSDR, and OpenWebRX / OpenWebRX+.
 // Talks to bridge.js (isolated world) via window.postMessage.
 //
 // Frequencies are always the *signal* frequency, as a radio shows it: in CW that is
@@ -60,6 +60,32 @@
       const khz = hz / 1000;
       if (typeof window.setfreqb === 'function') window.setfreqb(khz); // also switches band if needed
       else window.setfreqif(String(khz));
+    },
+  };
+
+  /* ------------------------------------------------------------ PA3FWM WebSDR, mobile page (m.html)
+     Same globals as the desktop page (freq, mode, lo, hi, nominalfreq), but tuning goes
+     through setfreq() with the dial frequency and the mode through the #modesel select. */
+  const websdrMobile = {
+    name: 'WebSDR',
+    detect: () =>
+      typeof window.nominalfreq === 'function' &&
+      typeof window.freq === 'number' &&
+      typeof window.setfreq === 'function' &&
+      typeof window.setmode_sel === 'function' &&
+      !!document.getElementById('modesel'),
+    readHz: () => websdr.readHz(),
+    readMode: () => websdr.readMode(),
+    setMode(m) {
+      const sel = document.getElementById('modesel');
+      if (![...sel.options].some((o) => o.value === m)) return;
+      sel.value = m;
+      window.setmode_sel(sel);
+    },
+    setFreq(hz) {
+      let khz = hz / 1000;
+      if (typeof window.iscw === 'function' && window.iscw()) khz -= (window.hi + window.lo) / 2;
+      window.setfreq(khz); // also switches band if needed
     },
   };
 
@@ -176,7 +202,7 @@
   };
 
   // Order matters: KiwiSDR is an OpenWebRX descendant, so test it first.
-  const ADAPTERS = [kiwisdr, openwebrx, websdr];
+  const ADAPTERS = [kiwisdr, openwebrx, websdr, websdrMobile];
   let sdr = null;
 
   function readHz() {

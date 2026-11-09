@@ -102,7 +102,9 @@ class MainActivity : Activity() {
         updateStar()
         val sdrsBtn = Button(this).apply {
             text = "SDRs"
-            setOnClickListener { SdrPicker(this@MainActivity, sdrs, DIRECTORIES) { loadSdr(it) }.show() }
+            setOnClickListener {
+                SdrPicker(this@MainActivity, sdrs, DIRECTORIES, { sdrs.websdrMobile }, ::toggleWebsdrMobile) { loadSdr(it) }.show()
+            }
         }
         val panelBtn = Button(this).apply {
             text = "Panel"
@@ -271,10 +273,35 @@ class MainActivity : Activity() {
     /** The page turned out to be an SDR: remember it as recent and as the one to reopen. */
     private fun sdrDetected(title: String, type: String) {
         val url = sdrView.url ?: return
-        val e = SdrEntry(SdrStore.normalize(url), title, type)
+        val mobilePage = isWebsdrMobilePage(url)
+        // WebSDRs are remembered by their root address; the setting picks desktop or mobile page.
+        val e = SdrEntry(SdrStore.normalize(url).let { if (type == "WebSDR") it.removeSuffix("m.html") else it }, title, type)
         currentSdr = e
         sdrs.addRecent(e)
         updateStar()
+        if (type == "WebSDR" && sdrs.websdrMobile && !mobilePage) {
+            // Desktop page of a WebSDR: switch to its mobile page, if it links to one. replace()
+            // so that Back doesn't land on the desktop page and bounce straight back.
+            sdrView.evaluateJavascript(
+                "(function(){var a=document.querySelector('a[href=\"m.html\"],a[href=\"/m.html\"]');" +
+                    "if(!a)return false;location.replace(a.href);return true;})()", null
+            )
+        }
+    }
+
+    private fun isWebsdrMobilePage(url: String) = Uri.parse(url).path?.endsWith("/m.html") == true
+
+    /** The address to open for [url]: a known WebSDR opens straight on the page the setting asks for. */
+    private fun preferredUrl(url: String): String {
+        val root = SdrStore.normalize(url).removeSuffix("m.html")
+        if (sdrs.typeOf(root) != "WebSDR") return url
+        return if (sdrs.websdrMobile) root + "m.html" else root
+    }
+
+    private fun toggleWebsdrMobile() {
+        sdrs.websdrMobile = !sdrs.websdrMobile
+        val e = currentSdr
+        if (e != null && e.type == "WebSDR") loadSdr(e.url)
     }
 
     private fun toggleFavourite() {
@@ -308,6 +335,7 @@ class MainActivity : Activity() {
         if (!url.contains("://")) url = "http://$url"
         val uri = Uri.parse(url)
         if ((uri.scheme != "http" && uri.scheme != "https") || uri.host.isNullOrEmpty()) return
+        url = preferredUrl(url)
         urlField.setText(url)
         urlField.clearFocus()
         (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(urlField.windowToken, 0)

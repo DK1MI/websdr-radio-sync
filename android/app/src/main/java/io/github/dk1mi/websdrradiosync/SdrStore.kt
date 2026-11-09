@@ -26,6 +26,15 @@ data class SdrEntry(val url: String, val title: String, val type: String) {
 class SdrStore(private val prefs: SharedPreferences) {
     val last: String? get() = prefs.getString(KEY_LAST, null)
 
+    /** Open PA3FWM WebSDRs on their mobile page (m.html). On by default. */
+    var websdrMobile: Boolean
+        get() = prefs.getBoolean(KEY_WEBSDR_MOBILE, true)
+        set(v) { prefs.edit().putBoolean(KEY_WEBSDR_MOBILE, v).apply() }
+
+    /** The detected SDR type of a remembered address, or null if unknown. */
+    fun typeOf(url: String): String? =
+        (favourites() + recent()).firstOrNull { it.url == url }?.type?.takeIf { it.isNotEmpty() }
+
     fun recent() = load(KEY_RECENT)
     fun favourites() = load(KEY_FAVOURITES)
     fun isFavourite(url: String) = favourites().any { it.url == url }
@@ -61,6 +70,7 @@ class SdrStore(private val prefs: SharedPreferences) {
         private const val KEY_LAST = "lastSdr"
         private const val KEY_RECENT = "recentSdrs"
         private const val KEY_FAVOURITES = "favouriteSdrs"
+        private const val KEY_WEBSDR_MOBILE = "websdrMobile"
         private const val MAX_RECENT = 20
 
         /** The SDR's address without query and fragment (WebSDR/KiwiSDR put the tuning there). */

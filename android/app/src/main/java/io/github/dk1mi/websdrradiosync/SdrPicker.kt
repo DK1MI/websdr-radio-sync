@@ -20,11 +20,19 @@ class SdrPicker(
     private val activity: Activity,
     private val store: SdrStore,
     private val directories: List<Pair<String, String>>,
+    private val websdrMobile: () -> Boolean,
+    private val toggleWebsdrMobile: () -> Unit,
     private val open: (String) -> Unit,
 ) {
     private sealed class Row {
         class Header(val text: String) : Row()
-        class Item(val title: String, val sub: String, val url: String, val remove: (() -> String)? = null) : Row()
+        class Item(
+            val title: String,
+            val sub: String,
+            val click: () -> Unit,
+            val remove: (() -> String)? = null,
+            val keepOpen: Boolean = false,
+        ) : Row()
     }
 
     private lateinit var dialog: AlertDialog
@@ -36,14 +44,16 @@ class SdrPicker(
             adapter = this@SdrPicker.adapter
             setOnItemClickListener { _, _, pos, _ ->
                 val r = this@SdrPicker.adapter.rows[pos]
-                if (r is Row.Item) { dialog.dismiss(); open(r.url) }
+                if (r !is Row.Item) return@setOnItemClickListener
+                if (!r.keepOpen) dialog.dismiss()
+                r.click()
+                if (r.keepOpen) refresh()
             }
             setOnItemLongClickListener { _, _, pos, _ ->
                 val r = this@SdrPicker.adapter.rows[pos]
                 val msg = (r as? Row.Item)?.remove?.invoke() ?: return@setOnItemLongClickListener false
                 Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
-                this@SdrPicker.adapter.rows = rows()
-                this@SdrPicker.adapter.notifyDataSetChanged()
+                refresh()
                 true
             }
         }
@@ -53,6 +63,11 @@ class SdrPicker(
             .setNegativeButton("Close", null)
             .create()
         dialog.show()
+    }
+
+    private fun refresh() {
+        adapter.rows = rows()
+        adapter.notifyDataSetChanged()
     }
 
     private fun rows(): List<Row> {
@@ -68,14 +83,21 @@ class SdrPicker(
             recent.forEach { e -> out += item(e) { store.removeRecent(e.url); "Removed from recent" } }
         }
         out += Row.Header("Find an SDR")
-        directories.forEach { (name, url) -> out += Row.Item(name, Uri.parse(url).host ?: url, url) }
+        directories.forEach { (name, url) -> out += Row.Item(name, Uri.parse(url).host ?: url, { open(url) }) }
+        out += Row.Header("Settings")
+        out += Row.Item(
+            title = "WebSDR: " + if (websdrMobile()) "mobile page" else "desktop page",
+            sub = "Tap to switch. The mobile page fits tablets and phones better.",
+            click = toggleWebsdrMobile,
+            keepOpen = true,
+        )
         return out
     }
 
     private fun item(e: SdrEntry, remove: () -> String) = Row.Item(
         title = e.title.ifBlank { e.host },
         sub = listOf(e.type, e.host).filter { it.isNotBlank() }.joinToString(" · "),
-        url = e.url,
+        click = { open(e.url) },
         remove = remove,
     )
 
