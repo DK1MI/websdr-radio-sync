@@ -1,7 +1,6 @@
 package io.github.dk1mi.websdrradiosync
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -10,6 +9,7 @@ import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Message
 import android.text.InputType
 import android.view.View
 import android.view.WindowInsets
@@ -29,7 +29,6 @@ import android.widget.LinearLayout
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
-import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -48,16 +47,21 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("app", MODE_PRIVATE) }
     private var panelVisible = true
     private var sdrLoaded = false
+    private lateinit var starBtn: Button
+    private lateinit var sdrs: SdrStore
+    /** The SDR on the current page, once sdr-main.js has recognised it; null on other pages (directories). */
+    private var currentSdr: SdrEntry? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+        sdrs = SdrStore(prefs)
         buildUi()
         host = PanelHost(this, panelView)
         setupPanel()
         setupSdr()
-        loadSdr(prefs.getString(KEY_LAST, null) ?: DEFAULT_SDR)
+        loadSdr(sdrs.last ?: DEFAULT_SDR)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -91,7 +95,15 @@ class MainActivity : Activity() {
                 if (action == EditorInfo.IME_ACTION_GO) { loadSdr(text.toString()); true } else false
             }
         }
-        val recentBtn = Button(this).apply { text = "Recent"; setOnClickListener { showRecent() } }
+        starBtn = Button(this).apply {
+            setOnClickListener { toggleFavourite() }
+            contentDescription = "Favourite"
+        }
+        updateStar()
+        val sdrsBtn = Button(this).apply {
+            text = "SDRs"
+            setOnClickListener { SdrPicker(this@MainActivity, sdrs, DIRECTORIES) { loadSdr(it) }.show() }
+        }
         val panelBtn = Button(this).apply {
             text = "Panel"
             setOnClickListener {
@@ -100,7 +112,8 @@ class MainActivity : Activity() {
             }
         }
         bar.addView(urlField, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        bar.addView(recentBtn)
+        bar.addView(starBtn)
+        bar.addView(sdrsBtn)
         bar.addView(panelBtn)
 
         sdrView = WebView(this)
@@ -185,6 +198,7 @@ class MainActivity : Activity() {
             builtInZoomControls = true
             displayZoomControls = false
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            setSupportMultipleWindows(true) // so target=_blank links from directories can be caught
         }
         sdrView.addJavascriptInterface(SdrBridge(), "SdrBridge")
         // The extension's content script, unchanged, plus the Android relay. Top frame only,
@@ -198,6 +212,8 @@ class MainActivity : Activity() {
         sdrView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 sdrLoaded = true
+                currentSdr = null
+                updateStar()
                 host.event("sdrGone", "{}") // like closing the SDR tab: the panel waits for the new page
                 if (!urlField.hasFocus()) urlField.setText(url)
             }
@@ -213,7 +229,28 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        sdrView.webChromeClient = WebChromeClient()
+        sdrView.webChromeClient = object : WebChromeClient() {
+            // New windows (target=_blank, window.open): directories open SDRs that way, so load
+            // them here. Popups from an SDR page itself go to the browser, to keep the SDR open.
+            override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message): Boolean {
+                val temp = WebView(this@MainActivity)
+                var handled = false
+                fun take(uri: Uri) {
+                    if (handled) return
+                    handled = true
+                    if (currentSdr != null || (uri.scheme != "http" && uri.scheme != "https")) openExternal(uri)
+                    else loadSdr(uri.toString())
+                    temp.post { temp.destroy() }
+                }
+                temp.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean { take(r.url); return true }
+                    override fun onPageStarted(v: WebView, url: String, favicon: Bitmap?) { take(Uri.parse(url)) }
+                }
+                (resultMsg.obj as WebView.WebViewTransport).webView = temp
+                resultMsg.sendToTarget()
+                return true
+            }
+        }
     }
 
     /** Reports from sdr-main.js on the SDR page; checked again by the shim. */
@@ -223,7 +260,33 @@ class MainActivity : Activity() {
             if (json.length > 4000) return
             val o = try { JSONObject(json) } catch (_: JSONException) { return }
             host.event("sdrState", o.toString())
+            if (o.optString("kind") == "initial") {
+                val title = o.optString("title").take(120)
+                val type = o.optString("sdr").take(20)
+                sdrView.post { sdrDetected(title, type) }
+            }
         }
+    }
+
+    /** The page turned out to be an SDR: remember it as recent and as the one to reopen. */
+    private fun sdrDetected(title: String, type: String) {
+        val url = sdrView.url ?: return
+        val e = SdrEntry(SdrStore.normalize(url), title, type)
+        currentSdr = e
+        sdrs.addRecent(e)
+        updateStar()
+    }
+
+    private fun toggleFavourite() {
+        val e = currentSdr ?: return
+        if (sdrs.isFavourite(e.url)) sdrs.removeFavourite(e.url) else sdrs.addFavourite(e)
+        updateStar()
+    }
+
+    private fun updateStar() {
+        val e = currentSdr
+        starBtn.isEnabled = e != null
+        starBtn.text = if (e != null && sdrs.isFavourite(e.url)) "★" else "☆"
     }
 
     /** A command from the panel to the SDR page (what chrome.tabs.sendMessage does in the extension). */
@@ -249,25 +312,6 @@ class MainActivity : Activity() {
         urlField.clearFocus()
         (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(urlField.windowToken, 0)
         sdrView.loadUrl(url)
-        val recent = recentList().filter { it != url }.toMutableList()
-        recent.add(0, url)
-        prefs.edit()
-            .putString(KEY_LAST, url)
-            .putString(KEY_RECENT, JSONArray(recent.take(15)).toString())
-            .apply()
-    }
-
-    private fun recentList(): List<String> = try {
-        val a = JSONArray(prefs.getString(KEY_RECENT, "[]"))
-        List(a.length()) { a.getString(it) }
-    } catch (_: JSONException) { emptyList() }
-
-    private fun showRecent() {
-        val items = (recentList() + DEFAULT_SDR).distinct().toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Recent SDRs")
-            .setItems(items) { _, i -> loadSdr(items[i]) }
-            .show()
     }
 
     private fun openExternal(uri: Uri) {
@@ -295,7 +339,12 @@ class MainActivity : Activity() {
         const val PANEL_HOST = "appassets.androidplatform.net"
         const val PANEL_PATH = "/assets/ext/panel.html"
         const val DEFAULT_SDR = "http://websdr.ewi.utwente.nl:8901/"
-        const val KEY_LAST = "lastSdr"
-        const val KEY_RECENT = "recentSdrs"
+
+        /** Public directories, opened in the SDR view and browsed like any website. */
+        val DIRECTORIES = listOf(
+            "websdr.org (WebSDR)" to "http://websdr.org/",
+            "KiwiSDR public list" to "http://kiwisdr.com/public/",
+            "receiverbook.de map (OpenWebRX, KiwiSDR, WebSDR)" to "https://www.receiverbook.de/map",
+        )
     }
 }
