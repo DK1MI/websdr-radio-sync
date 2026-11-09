@@ -13,16 +13,10 @@ FEATURES
 • Runs in Chrome's side panel or in its own window. With several SDR tabs open, it follows the tab you're looking at
 • Optional Cloudlog / Wavelog integration: your logbook's QSO form is pre-filled with frequency, band and mode
 
-SUPPORTED RADIOS (BUILT-IN)
-• Kenwood: TS-50, TS-140, TS-440, TS-450, TS-480, TS-570, TS-590S/SG, TS-680, TS-690, TS-711/811, TS-850, TS-870, TS-890, TS-950, TS-990, TS-2000
-• Elecraft: K2, K3/K3S, K4, KX2, KX3
-• Kenwood-compatible: FlexRadio (SmartSDR CAT), QRP Labs QDX/QMX/QCX, truSDX/uSDX, Lab599 TX-500, SDR software with TS-2000 emulation
-• Yaesu: FT-450/450D, FT-710, FT-891, FT-950, FT-991/991A, FT-2000, FTDX10, FTDX101D/MP, FTDX1200, FTDX3000, FTDX5000
-• Yaesu 5-byte CAT: FT-817/818, FT-857, FT-897, FT-847
-• Icom CI-V: IC-705, IC-706 series, IC-718, IC-735, IC-746/PRO, IC-756PROII/III, IC-910H, IC-7000, IC-7100, IC-7200, IC-7300, IC-7410, IC-7600, IC-7610, IC-7700, IC-7800, IC-7851, IC-9100, IC-9700, IC-R75, IC-R8600, and any other CI-V radio (set the address)
-• Xiegu: G90, X6100, X5105
+SUPPORTED RADIOS
+The built-in drivers cover most current and many older Kenwood, Elecraft, Yaesu, Icom and Xiegu transceivers, for example the Kenwood TS-590, the Icom IC-7300 and the Yaesu FT-991A. Radios that use the same protocols work too, such as FlexRadio and QRP Labs rigs, and so does the FT-817 family with its older Yaesu protocol. Pick your radio from the list in the panel. The full list of models is at https://github.com/DK1MI/websdr-radio-sync#supported-radios
 
-Everything else Hamlib supports (Ten-Tec, Alinco, AOR, older Yaesu such as the FT-1000MP, and many more) works through the Hamlib option.
+Any other radio that Hamlib supports works through the Hamlib option.
 
 HOW TO USE
 1. Click the extension icon to open the sync panel.
@@ -34,7 +28,7 @@ REQUIREMENTS
 • Chrome, Edge, Brave or another Chromium browser, version 116 or later
 • A CAT connection to your radio: a USB cable for radios with a USB port, or a USB-serial adapter for RS-232 radios
 • Linux: your user must be in the "dialout" group (Debian, Ubuntu, Fedora) or "uucp" group (Arch and derivatives) to open serial ports
-• The Hamlib option needs Hamlib, Python 3 and a small helper program, set up once from the project's GitHub page. Browsers don't let extensions start programs themselves, so this can't be included in the extension. Linux and macOS only for now.
+• The Hamlib option needs Hamlib, Python 3 and a small helper program that you set up once. Browsers don't let extensions start programs themselves, so the helper can't be included in the extension. Linux and macOS only for now. Setup: https://github.com/DK1MI/websdr-radio-sync#hamlib-any-other-radio
 
 CLOUDLOG / WAVELOG
 Enter your logbook's address, an API key and your station ID in the panel. The extension then reports the current frequency and mode through the logbook's radio API, like a CAT tool would. It uses the radio's frequency when a radio is connected, otherwise the SDR's, which is handy for SWL logging.
