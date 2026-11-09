@@ -17,6 +17,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
   and radio jump to it,
   and log the contact in Cloudlog/Wavelog with one more click
 - No tracking or analytics. Data goes only to your radio and, if you set it up, your own logbook.
+- Also as an **[Android app](#android-app)** for tablets and phones, with the radio on USB
 
 ![](screenshot.png)
 
@@ -33,6 +34,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 - [Logbook: Cloudlog / Wavelog](#logbook-cloudlog--wavelog)
 - [Cables and serial settings](#cables-and-serial-settings)
 - [Troubleshooting](#troubleshooting)
+- [Android app](#android-app)
 - [How it works](#how-it-works)
 - [Development](#development)
 - [Privacy](#privacy)
@@ -42,7 +44,7 @@ rig-control software. Radios without a built-in driver work through **Hamlib** (
 
 | Software | Example | Notes |
 |---|---|---|
-| [WebSDR](http://websdr.org/) | http://websdr.ewi.utwente.nl:8901/ | Switches bands automatically |
+| [WebSDR](http://websdr.org/) | http://websdr.ewi.utwente.nl:8901/ | Desktop and mobile page (`m.html`). Switches bands automatically |
 | [KiwiSDR](http://kiwisdr.com/) | any receiver on [rx.kiwisdr.com](http://rx.kiwisdr.com/) | 0–30 MHz. Keeps your waterfall zoom and honours a transverter frequency offset |
 | [OpenWebRX](https://www.openwebrx.de/) / [OpenWebRX+](https://fms.komkon.org/OWRX/) | any receiver on [receiverbook.de](https://www.receiverbook.de/) | Tunes within the band (profile) selected on the page. Pick another profile there to change bands |
 
@@ -255,6 +257,33 @@ storage on your computer, like the other settings.
 
 The **Log** at the bottom of the panel shows what's happening.
 
+## Android app
+
+The same sync as an Android app for tablets and phones: the web SDR and the sync panel side by
+side (landscape) or stacked (portrait), and the radio on the tablet's USB port through an OTG
+adapter or cable. It uses the extension's own panel, radio drivers and SDR detection, so it
+behaves the same way.
+
+**Install:** download `web-sdr-radio-sync-<version>.apk` from the [Releases](../../releases) page
+and open it on the device (allow installing from this source when Android asks). Android 8 or later.
+
+**Using it:**
+- **SDRs** lists your favourites and recently used SDRs, and opens the public directories
+  (websdr.org, the KiwiSDR list, the receiverbook.de map) right in the app. Browse them as on the
+  web; any SDR you open there is added to Recent. **☆** makes the current SDR a favourite;
+  long-press an entry to remove it.
+- WebSDRs open on their **mobile page**, which fits tablets better. Switch to the desktop page
+  under SDRs → Settings.
+- **Connect…** shows the USB serial adapters found. Supported chips: FTDI, Silicon Labs CP210x
+  (most Icom and Yaesu radios with a USB port), WCH CH34x, Prolific PL2303 and CDC-ACM. When you
+  plug the radio in, Android offers to open the app, which then connects by itself.
+- Audio and sync keep running with the screen off or the app in the background, as long as the
+  notification is shown. **Stop** in the notification closes the app and frees the radio.
+  Keeping the screen on is an option under SDRs → Settings.
+- **Panel** hides or shows the sync panel.
+
+Not in the app: Hamlib (it needs the desktop helper). One SDR is open at a time.
+
 ## How it works
 
 ```
@@ -312,6 +341,30 @@ The `key` in `manifest.json` pins the unpacked extension's ID to
 `kpaeajaipgjalgohpjfejkccajdpoiij` wherever the folder lives, so the helper's install script knows
 which extension to allow.
 
+**Android app** (`android/`): a Kotlin shell around the extension's files, which the Gradle build
+copies into the APK. `android/app/src/main/assets/android-shim.js` provides the `chrome.*` and
+Web Serial APIs the panel uses, backed by the app (USB serial through
+[usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android)). Needs JDK 17 and the
+Android SDK (platform 35, build-tools 35):
+```sh
+cd android && ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
+```
+Debug builds install next to the release app as "Web SDR Sync (debug)". The version comes from
+`manifest.json`. For signed release builds, `./build.sh` also creates
+`dist/web-sdr-radio-sync-<version>.apk` once a signing key is set up in `.secrets/` (not in git):
+```sh
+keytool -genkeypair -keystore .secrets/android-release.jks -alias websdr-radio-sync \
+        -keyalg RSA -keysize 4096 -validity 10000
+```
+and `.secrets/android-keystore.properties`:
+```
+storeFile=android-release.jks
+storePassword=…
+keyAlias=websdr-radio-sync
+keyPassword=…
+```
+Keep a backup of the key: updates to an installed app must be signed with the same key.
+
 **Adding a radio:**
 - If it speaks an existing protocol, add a line to `rigs/models.js`: name, family, frequency range,
   default baud/stop/flow, and a CI-V address for Icom.
@@ -337,6 +390,12 @@ Web SDR → Radio Sync has no tracking or analytics, and the developer receives 
 - On web pages it only checks whether the page is a WebSDR, KiwiSDR or OpenWebRX receiver. On an SDR
   page it reads and sets the tuned frequency and mode, and nothing else. On any other page it stops
   after about a minute without doing anything.
+
+**Android app:** the same as above, with these differences. Settings, favourites and recent SDRs
+are stored on the device. The app loads the SDR pages and directories you open, like a browser.
+The notification is shown only on the device. The app needs USB access (asked when you connect)
+and runs a foreground service with a wake lock while it is open, so audio and sync continue with
+the screen off.
 
 ## License
 

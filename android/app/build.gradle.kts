@@ -1,7 +1,21 @@
+import groovy.json.JsonSlurper
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+val extensionDir: File = rootProject.projectDir.parentFile
+
+// One version for extension and app: manifest.json "version" (2.3.0 -> versionCode 20300).
+val extVersion = (JsonSlurper().parse(File(extensionDir, "manifest.json")) as Map<*, *>)["version"] as String
+val extVersionCode = extVersion.split(".").map { it.toInt() }.let { (a, b, c) -> a * 10000 + b * 100 + c }
+
+// Release signing: ../.secrets/android-keystore.properties (not in git), see README "Android app".
+val signingProps = File(extensionDir, ".secrets/android-keystore.properties")
+    .takeIf { it.exists() }
+    ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
 
 android {
     namespace = "io.github.dk1mi.websdrradiosync"
@@ -11,8 +25,28 @@ android {
         applicationId = "io.github.dk1mi.websdrradiosync"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = extVersionCode
+        versionName = extVersion
+    }
+
+    signingConfigs {
+        if (signingProps != null) create("release") {
+            storeFile = File(extensionDir, ".secrets/" + signingProps.getProperty("storeFile"))
+            storePassword = signingProps.getProperty("storePassword")
+            keyAlias = signingProps.getProperty("keyAlias")
+            keyPassword = signingProps.getProperty("keyPassword")
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".debug" // installs next to the release app
+            versionNameSuffix = "-debug"
+        }
+        release {
+            isMinifyEnabled = false // small app; avoids keep rules for the JS interfaces and USB driver probing
+            if (signingProps != null) signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     buildFeatures { buildConfig = true }
@@ -28,7 +62,7 @@ android {
 }
 
 val copyExtension by tasks.registering(Sync::class) {
-    from(rootProject.projectDir.parentFile) {
+    from(extensionDir) {
         include("panel.html", "panel.css", "panel.js", "logbook.js", "spots.js",
             "rigs/**", "content/**", "icons/**")
     }

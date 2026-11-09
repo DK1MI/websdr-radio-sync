@@ -392,7 +392,9 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (sdrView.canGoBack()) sdrView.goBack() else @Suppress("DEPRECATION") super.onBackPressed()
+        // At the first page, Back only leaves the app: closing it would disconnect the radio
+        // (that is what Stop in the notification is for).
+        if (sdrView.canGoBack()) sdrView.goBack() else moveTaskToBack(true)
     }
 
     override fun onDestroy() {
