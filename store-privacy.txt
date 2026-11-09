@@ -41,4 +41,4 @@ Certifications: tick all three.
 • I do not use or transfer user data for purposes that are unrelated to my item's single purpose
 • I do not use or transfer user data to determine creditworthiness or for lending purposes
 
-Privacy policy URL (if the form requires one): the Privacy section of the README on GitHub (https://github.com/<you>/<repo>#privacy).
+Privacy policy URL (if the form requires one): the Privacy section of the README on GitHub (https://github.com/DK1MI/websdr-radio-sync#privacy).
