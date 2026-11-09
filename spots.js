@@ -8,10 +8,11 @@
 
 const SPOTS_URL = 'https://spothole.app/api/v3/spots?' + new URLSearchParams({
   needs_activity: 'true',   // only spots that belong to an activity such as POTA or SOTA
-  dedupe: 'true',           // latest spot per callsign
-  allow_qrt: 'false',
-  fields: 'id,dx_call,freq,mode,mode_type,band,activities,activity_refs,dx_qth,comment,de_call,time',
+  // No server-side dedupe or QRT filter: an activator in a park and a WWFF area at once gets
+  // separate POTA and WWFF spots, so they are merged here (see mergeByCall).
+  fields: 'id,dx_call,dx_continent,freq,mode,mode_type,band,activities,activity_refs,dx_qth,comment,de_call,time,qrt',
 });
+const SAME_QRG_HZ = 1000;  // spots of one callsign within 1 kHz are the same activation
 const TIMEOUT_MS = 15000;
 export const REFRESH_MS = 120000;
 
@@ -24,6 +25,11 @@ export const BANDS = [
 ];
 
 export const MODE_GROUPS = ['CW', 'SSB', 'DATA', 'FM', 'AM'];
+
+export const CONTINENTS = [
+  ['EU', 'Europe'], ['NA', 'North America'], ['SA', 'South America'], ['AS', 'Asia'],
+  ['AF', 'Africa'], ['OC', 'Oceania'], ['AN', 'Antarctica'],
+];
 
 const DATA_MODES = /^(FT8|FT4|JS8|RTTY|PSK|BPSK|QPSK|MFSK|OLIVIA|CONTESTI|DOMINO|THOR|HELL|SSTV|VARA|DATA|DIGI|DIG|PKT|Q65|JT\d*|WSPR|MSK144|FST4|FSK|JTTY)/;
 
@@ -90,13 +96,36 @@ export async function fetchSpots() {
       activities: (Array.isArray(s.activities) ? s.activities : []).map(String),
       refs,
       location: String(s.dx_qth || ''),
+      continent: String(s.dx_continent || ''),
       comments: String(s.comment || ''),
       spotter: String(s.de_call || ''),
       time: Number(s.time) > 0 ? Number(s.time) * 1000 : 0,
+      qrt: s.qrt === true,
     });
   }
-  spots.sort((a, b) => b.time - a.time);
-  return spots;
+  return mergeByCall(spots);
+}
+
+// One row per callsign: the latest spot, plus the programmes and references of the other spots
+// of that callsign on the same frequency (e.g. POTA and WWFF spots of a combined activation).
+// Callsigns whose latest spot says QRT are left out. Returns newest first.
+export function mergeByCall(list) {
+  const sorted = [...list].sort((a, b) => b.time - a.time);
+  const byCall = new Map();
+  for (const s of sorted) {
+    const key = s.call.toUpperCase();
+    const m = byCall.get(key);
+    if (!m) {
+      byCall.set(key, { ...s, activities: [...s.activities], refs: [...s.refs] });
+      continue;
+    }
+    if (Math.abs(s.hz - m.hz) > SAME_QRG_HZ) continue;  // an older frequency before a QSY
+    for (const a of s.activities) if (!m.activities.includes(a)) m.activities.push(a);
+    for (const r of s.refs) {
+      if (!m.refs.some((x) => x.activity === r.activity && x.id === r.id)) m.refs.push(r);
+    }
+  }
+  return [...byCall.values()].filter((s) => !s.qrt);
 }
 
 // Activities in the current spots, most frequent first.
@@ -106,9 +135,10 @@ export function activitiesIn(spots) {
   return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([a]) => a);
 }
 
-export function filterSpots(spots, { band, mode, activity }) {
+export function filterSpots(spots, { band, mode, activity, continent }) {
   return spots.filter((s) =>
     (!band || s.band === band) &&
     (!mode || s.group === mode) &&
-    (!activity || s.activities.includes(activity)));
+    (!activity || s.activities.includes(activity)) &&
+    (!continent || s.continent === continent));
 }

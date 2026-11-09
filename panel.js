@@ -5,7 +5,7 @@
 import { MODELS, findModel, createDriver, shortName } from './rigs/models.js';
 import { HostSession } from './rigs/hamlib.js';
 import { Logbook } from './logbook.js';
-import { BANDS, MODE_GROUPS, REFRESH_MS as SPOT_REFRESH_MS, activitiesIn, fetchSpots, filterSpots, refsLabel, tuneMode } from './spots.js';
+import { BANDS, CONTINENTS, MODE_GROUPS, REFRESH_MS as SPOT_REFRESH_MS, activitiesIn, fetchSpots, filterSpots, refsLabel, tuneMode } from './spots.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,6 +37,7 @@ const DEFAULTS = {
   spotBand: '',
   spotMode: '',
   spotActivity: '',
+  spotContinent: '',
   spotsOpen: false,
 };
 let cfg = { ...DEFAULTS };
@@ -92,7 +93,7 @@ function bindSettings() {
       if (key === 'hamlibMode') updateSections();
       if (key === 'followRadio' || key === 'pollMs') wake();
       if (key === 'syncToRadio' && v) queueSdrToRadio();
-      if (key === 'spotBand' || key === 'spotMode' || key === 'spotActivity') renderSpots();
+      if (key.startsWith('spot') && key !== 'spotsOpen') renderSpots();
     });
   }
   $('hamlibModelInput').addEventListener('change', (e) => {
@@ -664,6 +665,7 @@ function fillSpotFilters() {
   addOption('spotBand', 'other', 'other');
   for (const g of MODE_GROUPS) addOption('spotMode', g, g === 'DATA' ? 'Data (FT8, RTTY …)' : g);
   addOption('spotMode', 'other', 'other');
+  for (const [code, name] of CONTINENTS) addOption('spotContinent', code, `${name} (${code})`);
   fillActivityFilter();
 }
 
@@ -703,7 +705,7 @@ function fmtAge(ms) {
 
 function renderSpots() {
   if (!spotsAt) return;
-  const shown = filterSpots(spots, { band: cfg.spotBand, mode: cfg.spotMode, activity: cfg.spotActivity });
+  const shown = filterSpots(spots, { band: cfg.spotBand, mode: cfg.spotMode, activity: cfg.spotActivity, continent: cfg.spotContinent });
   const now = Date.now();
   const canLog = logbook.canLogQso;
   const table = document.createElement('table');
@@ -715,7 +717,7 @@ function renderSpots() {
     const refs = refsLabel(s);
     tr.title = [
       ...s.refs.map((r) => `${r.activity} ${r.id}${r.name ? ': ' + r.name : ''}`),
-      s.location,
+      [s.location, s.continent].filter(Boolean).join(', '),
       s.comments,
       s.spotter ? `Spotted by ${s.spotter}` : '',
     ].filter(Boolean).join('\n');
