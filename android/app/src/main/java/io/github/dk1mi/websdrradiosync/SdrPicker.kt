@@ -20,10 +20,12 @@ class SdrPicker(
     private val activity: Activity,
     private val store: SdrStore,
     private val directories: List<Pair<String, String>>,
-    private val websdrMobile: () -> Boolean,
-    private val toggleWebsdrMobile: () -> Unit,
+    private val settings: List<Setting>,
     private val open: (String) -> Unit,
 ) {
+    /** A row under "Settings": tapping it calls [toggle], the dialog stays open and redraws. */
+    class Setting(val title: () -> String, val sub: String, val toggle: () -> Unit)
+
     private sealed class Row {
         class Header(val text: String) : Row()
         class Item(
@@ -85,12 +87,7 @@ class SdrPicker(
         out += Row.Header("Find an SDR")
         directories.forEach { (name, url) -> out += Row.Item(name, Uri.parse(url).host ?: url, { open(url) }) }
         out += Row.Header("Settings")
-        out += Row.Item(
-            title = "WebSDR: " + if (websdrMobile()) "mobile page" else "desktop page",
-            sub = "Tap to switch. The mobile page fits tablets and phones better.",
-            click = toggleWebsdrMobile,
-            keepOpen = true,
-        )
+        settings.forEach { s -> out += Row.Item(s.title(), s.sub, s.toggle, keepOpen = true) }
         return out
     }
 

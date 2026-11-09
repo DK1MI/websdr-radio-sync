@@ -46,6 +46,21 @@ class PanelHost(private val activity: MainActivity, private val panel: WebView) 
         }
     }
 
+    /**
+     * A setTimeout from the shim while the panel is hidden. WebView throttles a hidden page's
+     * own timers (down to once a minute); tasks posted from here are not throttled.
+     */
+    @JavascriptInterface
+    fun timer(id: Int, ms: Int) {
+        main.postDelayed({ eval("__androidShim.fire($id)") }, ms.coerceIn(0, 3_600_000).toLong())
+    }
+
+    /** Radio/SDR summary from the panel, for the notification. */
+    @JavascriptInterface
+    fun status(title: String, text: String) {
+        main.post { SyncService.instance?.update(title.take(100), text.take(200)) }
+    }
+
     /** Sends an event to the panel: `__androidShim.event(name, data)`. Any thread. */
     fun event(name: String, json: String) = eval("__androidShim.event(${JSONObject.quote(name)},$json)")
 

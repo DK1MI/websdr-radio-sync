@@ -1,6 +1,8 @@
 package io.github.dk1mi.websdrradiosync
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -54,9 +56,10 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         sdrs = SdrStore(prefs)
+        applyKeepScreenOn()
+        startSyncService()
         buildUi()
         host = PanelHost(this, panelView)
         setupPanel()
@@ -103,7 +106,7 @@ class MainActivity : Activity() {
         val sdrsBtn = Button(this).apply {
             text = "SDRs"
             setOnClickListener {
-                SdrPicker(this@MainActivity, sdrs, DIRECTORIES, { sdrs.websdrMobile }, ::toggleWebsdrMobile) { loadSdr(it) }.show()
+                SdrPicker(this@MainActivity, sdrs, DIRECTORIES, settings()) { loadSdr(it) }.show()
             }
         }
         val panelBtn = Button(this).apply {
@@ -166,6 +169,8 @@ class MainActivity : Activity() {
             allowContentAccess = false
         }
         panelView.addJavascriptInterface(host, "AndroidHost")
+        // Keep the renderer at full priority when the app is in the background.
+        panelView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         panelView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                 if (request.url.host == PANEL_HOST && request.url.path == PANEL_PATH) return patchedPanel()
@@ -203,6 +208,7 @@ class MainActivity : Activity() {
             setSupportMultipleWindows(true) // so target=_blank links from directories can be caught
         }
         sdrView.addJavascriptInterface(SdrBridge(), "SdrBridge")
+        sdrView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         // The extension's content script, unchanged, plus the Android relay. Top frame only,
         // like the extension's content scripts.
         val script = "if (window === window.top) {\n" +
@@ -298,6 +304,39 @@ class MainActivity : Activity() {
         return if (sdrs.websdrMobile) root + "m.html" else root
     }
 
+    private fun settings() = listOf(
+        SdrPicker.Setting(
+            { "WebSDR: " + if (sdrs.websdrMobile) "mobile page" else "desktop page" },
+            "Tap to switch. The mobile page fits tablets and phones better.",
+            ::toggleWebsdrMobile,
+        ),
+        SdrPicker.Setting(
+            { "Keep screen on: " + if (sdrs.keepScreenOn) "on" else "off" },
+            "Audio and sync keep running with the screen off either way.",
+        ) {
+            sdrs.keepScreenOn = !sdrs.keepScreenOn
+            applyKeepScreenOn()
+        },
+    )
+
+    private fun applyKeepScreenOn() {
+        if (sdrs.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    /* ------------------------------------------------------------ background service */
+
+    private fun startSyncService() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Without it the service still runs; the notification just isn't shown.
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
+        SyncService.onStopRequested = { finishAndRemoveTask() }
+        startForegroundService(Intent(this, SyncService::class.java))
+    }
+
     private fun toggleWebsdrMobile() {
         sdrs.websdrMobile = !sdrs.websdrMobile
         val e = currentSdr
@@ -357,6 +396,8 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        SyncService.onStopRequested = null
+        stopService(Intent(this, SyncService::class.java))
         host.shutdown()
         sdrView.destroy()
         panelView.destroy()

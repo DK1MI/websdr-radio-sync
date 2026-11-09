@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification icon: radio waves. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,10a2,2 0,1 1,0 4a2,2 0,1 1,0 -4zM7.05,7.05l1.41,1.41a5,5 0,0 0,0 7.07l-1.41,1.41a7,7 0,0 1,0 -9.9zM16.95,7.05a7,7 0,0 1,0 9.9l-1.41,-1.41a5,5 0,0 0,0 -7.07zM4.22,4.22l1.42,1.42a9,9 0,0 0,0 12.72l-1.42,1.42a11,11 0,0 1,0 -15.56zM19.78,4.22a11,11 0,0 1,0 15.56l-1.42,-1.42a9,9 0,0 0,0 -12.72z" />
+</vector>

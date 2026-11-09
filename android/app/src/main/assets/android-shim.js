@@ -289,7 +289,32 @@
     },
   };
 
+  /* ------------------------------------------------------------ timers while hidden
+     With the screen off or the app in the background, WebView throttles the page's timers
+     (1/s, later 1/min), which would stall the radio polling. While hidden, setTimeout goes
+     through the app, whose callbacks are not throttled. */
+  const pageSetTimeout = window.setTimeout.bind(window);
+  const pageClearTimeout = window.clearTimeout.bind(window);
+  const appTimers = new Map();
+  let nextTimer = 1e9; // well above the page's own timer ids
+  window.setTimeout = (fn, ms, ...args) => {
+    if (!document.hidden || typeof fn !== 'function') return pageSetTimeout(fn, ms, ...args);
+    const id = nextTimer++;
+    appTimers.set(id, () => fn(...args));
+    host.timer(id, Math.max(0, Number(ms) || 0));
+    return id;
+  };
+  window.clearTimeout = (id) => {
+    if (!appTimers.delete(id)) pageClearTimeout(id);
+  };
+
   window.__androidShim = {
+    fire(id) {
+      const f = appTimers.get(id);
+      if (!f) return;
+      appTimers.delete(id);
+      try { f(); } catch (e) { console.error(e); }
+    },
     reply(id, ok, value) {
       const p = pending.get(id);
       if (!p) return;
@@ -302,8 +327,30 @@
     },
   };
 
+  /* ------------------------------------------------------------ notification text */
+  function watchStatus() {
+    const t = (id) => (document.getElementById(id)?.textContent || '').trim();
+    let timer = null;
+    const send = () => {
+      timer = null;
+      const freq = t('radioFreq');
+      const title = freq && freq !== '—'
+        ? [t('radioName'), freq, t('radioMode')].filter((x) => x && x !== '–').join(' · ')
+        : t('radioStatus');
+      const sdrFreq = t('sdrFreq');
+      const text = sdrFreq && sdrFreq !== '—'
+        ? [t('sdrKind'), sdrFreq, t('sdrHost')].filter(Boolean).join(' · ')
+        : 'No SDR page';
+      try { host.status(title, text); } catch (_) {}
+    };
+    new MutationObserver(() => { if (!timer) timer = window.setTimeout(send, 1000); })
+      .observe(document.body, { subtree: true, childList: true, characterData: true });
+    send();
+  }
+
   /* ------------------------------------------------------------ panel tweaks */
   document.addEventListener('DOMContentLoaded', () => {
+    watchStatus();
     const style = document.createElement('style');
     style.textContent = '#popoutBtn { display: none !important; }';
     document.head.appendChild(style);
