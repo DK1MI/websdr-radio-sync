@@ -41,6 +41,7 @@ const DEFAULTS = {
   spotActivity: '',
   spotContinent: '',
   spotsOpen: false,
+  loggedSpots: {},  // spotKey -> time logged (ms), kept for LOGGED_KEEP_MS
 };
 let cfg = { ...DEFAULTS };
 
@@ -658,8 +659,26 @@ let spotsAt = 0;
 let spotsTimer = null;
 let spotsLoading = false;
 const rowSpot = new WeakMap();  // table row -> spot
-const loggedSpots = new Set();  // spots logged as QSOs in this session
-const spotKey = (s) => `${s.call}|${s.refs.map((r) => r.id).join(',')}|${Math.round(s.hz / 1000)}`;
+// A logged spot stays "Logged ✓" when it is re-spotted (other frequency, new spot ID) until the
+// band, mode or reference changes, or two hours have passed. Kept in storage so it survives a restart.
+// Voice/CW modes compare by group (spotters write USB, LSB or SSB alike); data modes by name (FT8 ≠ FT4).
+const LOGGED_KEEP_MS = 2 * 3600 * 1000;
+const spotKey = (s) => [
+  s.call,
+  s.band !== 'other' ? s.band : Math.round(s.hz / 1e6) + 'MHz',
+  ['CW', 'SSB', 'FM', 'AM'].includes(s.group) ? s.group : s.mode,
+  s.refs.map((r) => r.id).sort().join(','),
+].join('|');
+function isLogged(s) {
+  const t = cfg.loggedSpots[spotKey(s)];
+  return t != null && Date.now() - t < LOGGED_KEEP_MS;
+}
+function markLogged(s) {
+  const now = Date.now();
+  const kept = Object.fromEntries(Object.entries(cfg.loggedSpots).filter(([, t]) => now - t < LOGGED_KEEP_MS));
+  kept[spotKey(s)] = now;
+  save('loggedSpots', kept);
+}
 
 function addOption(selectId, value, label) {
   const o = document.createElement('option');
@@ -744,7 +763,7 @@ function renderSpots() {
     if (canLog) {
       const btn = document.createElement('button');
       btn.className = 'logqso';
-      const done = loggedSpots.has(spotKey(s));
+      const done = isLogged(s);
       btn.textContent = done ? 'Logged ✓' : 'Log';
       btn.disabled = done;
       btn.title = `Log a QSO with ${s.call}${s.refs.length ? ' at ' + refs : ''}, report ${s.group === 'CW' ? '599' : '59'} both ways`;
@@ -842,7 +861,7 @@ async function logSpotQso(btn, tr) {
   const q = { call: s.call, refs: s.refs, mode: s.mode, hz };
   try {
     await logbook.logQso(q);
-    loggedSpots.add(spotKey(s));
+    markLogged(s);
     btn.textContent = 'Logged ✓';
     log(`Logged QSO with ${s.call}${s.refs.length ? ' (' + refsLabel(s) + ')' : ''} on ${fmtHz(hz)} ${s.mode}, station ${logbook.stationId}.`);
   } catch (e) {
