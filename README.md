@@ -7,6 +7,8 @@ the other way: turn the VFO knob and the web SDR follows.
 It talks to the radio straight from the browser over **Web Serial**, with no helper app, drivers or
 rig-control software. Radios without a built-in driver work through **Hamlib** (about 300 models).
 
+> **New:** now available in the **[Chrome Web Store](https://chromewebstore.google.com/detail/web-sdr-%E2%86%92-radio-sync/ijdhjmmjgenlhgceppmhopmajkjigfhh)**.
+
 - Works with **WebSDR**, **KiwiSDR**, **OpenWebRX** and **OpenWebRX+** pages, detected automatically
 - **Built-in drivers** for Kenwood, Elecraft, Yaesu and Icom, plus the many radios that use their protocols
 - **Any Hamlib radio** through `rigctld`, or share a `rigctld` that WSJT-X/fldigi already use
@@ -74,6 +76,11 @@ Yaesu like the FT-1000MP, and many more) works through [the Hamlib option](#haml
 Requires Chrome, Edge, Brave or another Chromium browser, version 116 or later. Firefox and Safari
 don't support Web Serial.
 
+**From the Chrome Web Store (recommended):** open
+[Web SDR → Radio Sync](https://chromewebstore.google.com/detail/web-sdr-%E2%86%92-radio-sync/ijdhjmmjgenlhgceppmhopmajkjigfhh), click **Add to Chrome**, then pin the extension to the toolbar.
+It updates itself.
+
+**Manually** (to try the latest code, or to change it):
 1. Download the latest `web-sdr-radio-sync-<version>.zip` from the
    [Releases](../../releases) page and unpack it, or clone this repository.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
@@ -124,9 +131,12 @@ one-time setup.
    sudo apt install libhamlib-utils python3   # Debian / Ubuntu
    brew install hamlib python            # macOS
    ```
-2. Register the helper with your browser, from the extension folder:
+2. Get the helper: download `web-sdr-radio-sync-<version>.zip` from the [Releases](../../releases)
+   page and unpack it, or clone this repository (the store version doesn't include it). Then register
+   it with your browser from that folder. The panel shows the right command for your installation:
    ```sh
-   ./native/install.sh
+   ./native/install.sh ijdhjmmjgenlhgceppmhopmajkjigfhh   # Chrome Web Store version
+   ./native/install.sh                                    # unpacked from this folder
    ```
    This writes a small manifest for Chrome, Chromium, Brave, Edge and Vivaldi.
    `./native/install.sh --uninstall` removes it. No browser restart is needed.
@@ -306,7 +316,7 @@ creates two archives in `dist/`:
 - `web-sdr-radio-sync-<version>.zip`: the whole project, extension plus Hamlib helper, for GitHub releases.
 - `web-sdr-radio-sync-<version>-store.zip`: the extension only, without the manifest `key`, ready to
   upload to the Chrome Web Store. The store assigns its own ID. Users of that build register the
-  helper with `./native/install.sh <store-extension-id>`.
+  helper with `./native/install.sh ijdhjmmjgenlhgceppmhopmajkjigfhh` (the store ID).
 
 The `key` in `manifest.json` pins the unpacked extension's ID to
 `kpaeajaipgjalgohpjfejkccajdpoiij` wherever the folder lives, so the helper's install script knows
