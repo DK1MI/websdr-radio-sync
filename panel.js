@@ -8,8 +8,6 @@ import { Logbook } from './logbook.js';
 import { BANDS, CONTINENTS, MODE_GROUPS, REFRESH_MS as SPOT_REFRESH_MS, activitiesIn, fetchSpots, filterSpots, refsLabel, tuneMode } from './spots.js';
 
 const $ = (id) => document.getElementById(id);
-// The Android app runs this panel unchanged on top of a shim (android/…/android-shim.js).
-const ON_ANDROID = chrome.runtime.id === 'android';
 
 /* ---------------------------------------------------------------- settings */
 
@@ -188,9 +186,7 @@ function render() {
   $('sdrFreq').textContent = fmtHz(sdr.hz);
   $('sdrKind').textContent = sdr.tabId == null ? 'SDR' : sdr.kind || 'SDR';
   $('sdrMode').textContent = sdr.tabId == null ? '–' : (sdr.mode || '?');
-  $('sdrHost').textContent = sdr.tabId == null
-    ? (ON_ANDROID ? 'No SDR page. Open one with the SDRs button.' : 'No SDR tab. Open a WebSDR, KiwiSDR or OpenWebRX page.')
-    : sdr.host;
+  $('sdrHost').textContent = sdr.tabId == null ? 'No SDR tab. Open a WebSDR, KiwiSDR or OpenWebRX page.' : sdr.host;
   $('sdrHost').title = sdr.title || '';
 
   $('radioName').textContent = shortName(driver?.model || model, cfg);
@@ -400,7 +396,7 @@ async function pickSerialPort(prompt) {
     try {
       return await navigator.serial.requestPort();
     } catch (e) {
-      if (e.name === 'NotFoundError' && performance.now() - t0 < 400 && !ON_ANDROID) {
+      if (e.name === 'NotFoundError' && performance.now() - t0 < 400) {
         // Rejected faster than any human could cancel → Chrome never showed the
         // chooser (it is suppressed in the side panel). Pick in a real tab.
         openPortPicker();
@@ -469,11 +465,7 @@ async function connectInner(prompt) {
   } catch (e) {
     log(`Could not open ${hamlib ? 'Hamlib' : 'port'}: ${e.message}`, 'err');
     if (e.hostMissing) checkHamlibHelper();
-    else if (!hamlib) {
-      log(ON_ANDROID
-        ? 'Is another app using the USB adapter? Unplug the cable, plug it in again and connect once more.'
-        : 'Is another program (flrig, WSJT-X, Hamlib…) using it? On Linux your user needs to be in the "uucp" (Arch) or "dialout" (Debian/Ubuntu) group.', 'warn');
-    }
+    else if (!hamlib) log('Is another program (flrig, WSJT-X, Hamlib…) using it? On Linux your user needs to be in the "uucp" (Arch) or "dialout" (Debian/Ubuntu) group.', 'warn');
     try { await d.close(); } catch (_) {}
     return;
   }
@@ -812,9 +804,7 @@ function tuneToSpot(hz, mode, label) {
   }
   log(`Tuning to ${label}: ${fmtHz(hz)}${mode ? ' ' + mode : ''}.`);
   if (sdr.tabId == null) {
-    log(ON_ANDROID
-      ? 'No SDR page is open, so only the radio was tuned. Open one with the SDRs button.'
-      : 'No SDR page is connected, so only the radio was tuned. If an SDR page is open, reload it (pages opened before the extension was updated or reloaded lose the connection).', 'warn');
+    log('No SDR page is connected, so only the radio was tuned. If an SDR page is open, reload it (pages opened before the extension was updated or reloaded lose the connection).', 'warn');
   }
 }
 

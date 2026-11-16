@@ -2,17 +2,15 @@
 # Builds release archives in dist/:
 #   web-sdr-radio-sync-<version>.zip        whole project (extension + Hamlib helper), for GitHub releases
 #   web-sdr-radio-sync-<version>-store.zip  extension only, without the manifest "key", for the Chrome Web Store
-#   web-sdr-radio-sync-<version>.apk        Android app, signed (only if .secrets/android-keystore.properties exists)
 set -eu
 cd "$(dirname "$0")"
 exec python3 -I - <<'PY'
-import json, os, shutil, subprocess, zipfile
+import json, os, zipfile
 
 EXT = ["manifest.json", "background.js", "panel.html", "panel.css", "panel.js",
        "pick-port.html", "pick-port.js", "logbook.js", "spots.js", "content", "rigs", "icons"]
-EXTRA = ["native", "android", "README.md", "LICENSE"]
-SKIP_DIRS = {"__pycache__", "build", ".gradle", ".idea"}  # build output and local state
-SKIP_FILES = {"local.properties"}
+EXTRA = ["native", "README.md", "LICENSE"]
+SKIP_DIRS = {"__pycache__"}
 
 manifest = json.load(open("manifest.json"))
 name = f"web-sdr-radio-sync-{manifest['version']}"
@@ -26,7 +24,7 @@ def files(paths):
             for root, dirs, fs in os.walk(p):
                 dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
                 for f in sorted(fs):
-                    if not f.endswith(".pyc") and f not in SKIP_FILES:
+                    if not f.endswith(".pyc"):
                         yield os.path.join(root, f)
 
 def add(z, path, arcname, data=None):
@@ -52,15 +50,6 @@ with zipfile.ZipFile(store, "w") as z:
             add(z, f, f)
 
 out = [full, store]
-
-# Android app: signed release APK, if the signing key is set up (see README "Android app").
-if os.path.exists(".secrets/android-keystore.properties"):
-    subprocess.run(["./gradlew", "-q", "--console=plain", "assembleRelease"], cwd="android", check=True)
-    apk = f"dist/{name}.apk"
-    shutil.copyfile("android/app/build/outputs/apk/release/app-release.apk", apk)
-    out.append(apk)
-else:
-    print("Android APK skipped: no .secrets/android-keystore.properties")
 
 for p in out:
     print(f"{p}  ({os.path.getsize(p) // 1024} KB)")

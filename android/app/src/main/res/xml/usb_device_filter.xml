@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- USB-serial chips built into radios and CAT cables: FTDI, Silicon Labs CP210x, WCH CH34x, Prolific. -->
-<resources>
-    <usb-device vendor-id="1027" />
-    <usb-device vendor-id="4292" />
-    <usb-device vendor-id="6790" />
-    <usb-device vendor-id="1659" />
-</resources>
